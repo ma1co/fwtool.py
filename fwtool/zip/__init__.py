@@ -1,6 +1,6 @@
 """A simple parser for zip archives"""
 
-from StringIO import StringIO
+import io
 from zipfile import ZipFile
 
 from ..util import *
@@ -13,12 +13,12 @@ def findZip(data):
  commentLen = parse16le(data[endOffset+20:endOffset+22])
 
  end = endOffset + 22 + commentLen
- return data[start:end]
+ return memoryview(data)[start:end]
 
 def readZip(data):
  """Takes the contents of a .zip file and returns a dict containing the name and contents of the contained files"""
  files = {}
- with ZipFile(StringIO(data), 'r') as f:
+ with ZipFile(io.BytesIO(data), 'r') as f:
   for name in f.namelist():
    files[name] = f.read(name)
  return files

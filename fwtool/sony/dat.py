@@ -19,10 +19,10 @@ def readDat(data):
  while 'DEND' not in chunks:
   length = parse32be(data[offset:offset+4])
   type = data[offset+4:offset+8]
-  chunks[type] = data[offset+8:offset+8+length]
+  chunks[type] = memoryview(data)[offset+8:offset+8+length]
   offset += 8 + length
 
- if crc32(data[:offset-12]) != parse32be(chunks['DEND']):
+ if crc32(memoryview(data)[:offset-12]) != parse32be(chunks['DEND']):
   raise Exception('Wrong checksum')
 
  return chunks

@@ -76,10 +76,10 @@ class Fdat:
   """Returns the contents of the main .tar file"""
   offset = parse32le(self.data[48:52])
   length = parse32le(self.data[52:56])
-  return self.data[offset:offset+length]
+  return memoryview(self.data)[offset:offset+length]
 
  def getImg(self):
   """Returns the contents of the updater image file"""
   offset = parse32le(self.data[68:72])
   length = parse32le(self.data[72:76])
-  return self.data[offset:offset+length]
+  return memoryview(self.data)[offset:offset+length]

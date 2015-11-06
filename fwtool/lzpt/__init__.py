@@ -54,11 +54,11 @@ def readLzpt(data):
  for i in xrange(tocOffset, tocOffset+tocLen, 8):
   offset = parse32le(data[i:i+4])
   length = parse32le(data[i+4:i+8])
-  block = data[offset:offset+length]
+  block = memoryview(data)[offset:offset+length]
 
   pos = out.tell()
   while out.tell() < pos + blockLen:
-   l, decoded = decodeLz77(block)
+   l, decoded = decodeLz77(block.tobytes())
    out.write(decoded)
    block = block[l:]
 

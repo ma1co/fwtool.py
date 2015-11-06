@@ -24,13 +24,13 @@ def unpackCommand(file, outDir):
  exeFile = pe.readExe(file.read())
 
  print 'Decompressing installer data'
- zipFile = zip.readZip(zip.findZip(exeFile['_winzip_']))
+ zipFile = zip.readZip(zip.findZip(exeFile['_winzip_'].tobytes()))
 
  print 'Reading .dat file'
  datFile = dat.readDat(zipFile[dat.findDat(zipFile.keys())])
 
  print 'Decoding firmware image'
- firmwareData = fdat.decryptFdat(datFile['FDAT'])
+ firmwareData = fdat.decryptFdat(datFile['FDAT'].tobytes())
 
  print 'Extracting updater image'
  writeFile(outDir, 'updater.img', firmwareData.getImg())

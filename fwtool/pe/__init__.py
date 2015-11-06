@@ -20,7 +20,7 @@ def readExe(data):
   type = sectData[:8]
   size = parse32le(sectData[16:20])
   off = parse32le(sectData[20:24])
-  sections[type] = data[off:off+size]
+  sections[type] = memoryview(data)[off:off+size]
   offset += sectLen
 
  return sections
