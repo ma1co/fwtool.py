@@ -1,5 +1,6 @@
 """Parser for the .dat file contained in the updater executable"""
 
+from collections import OrderedDict
 import re
 
 import constants
@@ -34,7 +35,7 @@ def readDat(data):
  if header.magic != datHeaderMagic:
   raise Exception('Wrong magic')
 
- chunks = {}
+ chunks = OrderedDict()
  offset = DatHeader.size
  while 'DEND' not in chunks:
   chunk = DatChunk.unpack(data, offset)

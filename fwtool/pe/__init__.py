@@ -1,5 +1,7 @@
 """A very simple parser for Windows Portable Executable (PE) files"""
 
+from collections import OrderedDict
+
 from ..util import *
 
 DosHeader = Struct('DosHeader', [
@@ -40,7 +42,7 @@ def readExe(data):
  if peHeader.magic != peHeaderMagic:
   raise Exception('Wrong magic')
 
- sections = {}
+ sections = OrderedDict()
  for i in xrange(peHeader.numSections):
   section = SectionHeader.unpack(data, dosHeader.peHeaderOffset + PeHeader.size + peHeader.optionalSize + i * SectionHeader.size)
   sections[section.type] = memoryview(data)[section.offset:section.offset+section.size]
