@@ -2,25 +2,47 @@
 
 from ..util import *
 
+DosHeader = Struct('DosHeader', [
+ ('magic', Struct.STR % 2),
+ ('...', 58),
+ ('peHeaderOffset', Struct.INT32),
+])
+dosHeaderMagic = 'MZ'
+
+PeHeader = Struct('PeHeader', [
+ ('magic', Struct.STR % 4),
+ ('...', 2),
+ ('numSections', Struct.INT16),
+ ('...', 12),
+ ('optionalSize', Struct.INT16),
+ ('...', 2),
+])
+peHeaderMagic = 'PE\x00\x00'
+
+SectionHeader = Struct('SectionHeader', [
+ ('type', Struct.STR % 8),
+ ('...', 8),
+ ('size', Struct.INT32),
+ ('offset', Struct.INT32),
+ ('...', 16),
+])
+
+def isExe(data):
+ return len(data) >= DosHeader.size and DosHeader.unpack(data).magic == dosHeaderMagic
+
 def readExe(data):
  """Takes the contents of a PE file and returns a dict containing the name and content of all sections"""
- ntOffset = parse32le(data[60:64])
+ dosHeader = DosHeader.unpack(data)
+ if dosHeader.magic != dosHeaderMagic:
+  raise Exception('Wrong magic')
 
- optOffset = ntOffset + 24
- optLen = parse16le(data[ntOffset+20:ntOffset+22])
-
- sectOffset = optOffset + optLen
- sectNum = parse16le(data[ntOffset+6:ntOffset+8])
- sectLen = 40
+ peHeader = PeHeader.unpack(data, dosHeader.peHeaderOffset)
+ if peHeader.magic != peHeaderMagic:
+  raise Exception('Wrong magic')
 
  sections = {}
- offset = sectOffset
- for i in xrange(0, sectNum):
-  sectData = data[offset:offset+sectLen]
-  type = sectData[:8]
-  size = parse32le(sectData[16:20])
-  off = parse32le(sectData[20:24])
-  sections[type] = memoryview(data)[off:off+size]
-  offset += sectLen
+ for i in xrange(peHeader.numSections):
+  section = SectionHeader.unpack(data, dosHeader.peHeaderOffset + PeHeader.size + peHeader.optionalSize + i * SectionHeader.size)
+  sections[section.type] = memoryview(data)[section.offset:section.offset+section.size]
 
  return sections

@@ -5,6 +5,19 @@ from StringIO import StringIO
 
 from ..util import *
 
+LzptHeader = Struct('LzptHeader', [
+ ('magic', Struct.STR % 4),
+ ('blockSize', Struct.INT32),
+ ('tocOffset', Struct.INT32),
+ ('tocSize', Struct.INT32),
+])
+lzptHeaderMagic = 'TPZL'
+
+LzptTocEntry = Struct('LzptTocEntry', [
+ ('offset', Struct.INT32),
+ ('size', Struct.INT32),
+])
+
 def decodeLz77(data):
  """Decodes LZ77 compressed data"""
  if ord(data[0]) == 0x0f:
@@ -39,25 +52,22 @@ def decodeLz77(data):
 
 def isLzpt(data):
  """Checks if the LZTP header is present"""
- return data[:4] == 'TPZL'
+ return len(data) >= LzptHeader.size and LzptHeader.unpack(data).magic == lzptHeaderMagic
 
 def readLzpt(data):
  """Decodes an LZTP image and returns its contents"""
- if not isLzpt(data):
-  raise Exception('Wrong header')
+ header = LzptHeader.unpack(data)
 
- blockLen = 2 ** parse32le(data[4:8])
- tocOffset = parse32le(data[8:12])
- tocLen = parse32le(data[12:16])
+ if header.magic != lzptHeaderMagic:
+  raise Exception('Wrong magic')
 
  out = StringIO()
- for i in xrange(tocOffset, tocOffset+tocLen, 8):
-  offset = parse32le(data[i:i+4])
-  length = parse32le(data[i+4:i+8])
-  block = memoryview(data)[offset:offset+length]
+ for offset in xrange(header.tocOffset, header.tocOffset+header.tocSize, LzptTocEntry.size):
+  tocEntry = LzptTocEntry.unpack(data, offset)
+  block = memoryview(data)[tocEntry.offset:tocEntry.offset+tocEntry.size]
 
   pos = out.tell()
-  while out.tell() < pos + blockLen:
+  while out.tell() < pos + 2 ** header.blockSize:
    l, decoded = decodeLz77(block.tobytes())
    out.write(decoded)
    block = block[l:]

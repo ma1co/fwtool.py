@@ -8,6 +8,25 @@ import struct
 import constants
 from ..util import *
 
+FdatEncryptionHeader = Struct('FdatEncryptionHeader', [
+ ('checksum', Struct.INT16),
+ ('size', Struct.INT16),
+])
+
+FdatHeader = Struct('FdatHeader', [
+ ('magic', Struct.STR % 8),
+ ('checksum', Struct.INT32),
+ ('...', 36),
+ ('tarOffset', Struct.INT32),
+ ('tarSize', Struct.INT32),
+ ('...', 12),
+ ('imgOffset', Struct.INT32),
+ ('imgSize', Struct.INT32),
+ ('...', 432),
+ ('end', Struct.INT32),
+])
+fdatHeaderMagic = 'UDTRFIRM'
+
 def _fastXor(xs, ys):
  """Fast xor between two strings. len(xs) must be a multiple of 8, ys must be at least as long as xs"""
  fmt = str(len(xs) / 8) + 'Q'
@@ -39,12 +58,15 @@ def _decrypt(data, func, l):
  fdat = StringIO()
  for i in xrange(0, len(data), l):
   decrypt = func(data[i:i+l], i)
-  checksum = parse16le(decrypt[:2])
-  length = parse16le(decrypt[2:4]) & 0x0fff
-  if sum(parse16leArr(decrypt[2:])) & 0xffff != checksum:
+  header = FdatEncryptionHeader.unpack(decrypt)
+  if sum(parse16leArr(decrypt[2:])) & 0xffff != header.checksum:
    raise Exception('Wrong checksum')
-  fdat.write(decrypt[4:4+length])
+  fdat.write(decrypt[FdatEncryptionHeader.size:FdatEncryptionHeader.size+header.size])
  return fdat.getvalue()
+
+def isFdat(data):
+ """Returns true if the data provided is a fdat file"""
+ return len(data) >= FdatHeader.size and FdatHeader.unpack(data).magic == fdatHeaderMagic
 
 def decryptFdat(data):
  """Takes the encrypted FDAT contents, decrypts the image and returns an Fdat instance"""
@@ -55,8 +77,8 @@ def decryptFdat(data):
  ]
 
  for func, l in funcs:
-  decrypt = func(data[:l], 0)[4:]
-  if decrypt[:8] == constants.fdatHeader and decrypt[508:512] == 4*'\x00':
+  header = FdatHeader.unpack(func(data[:l], 0), 4)
+  if header.magic == fdatHeaderMagic and header.end == 0:
    return Fdat(_decrypt(data, func, l))
 
  raise Exception('No decrypter found')
@@ -65,21 +87,18 @@ class Fdat:
  """A class representing an FDAT image"""
  def __init__(self, data):
   self.data = data
+  self.header = FdatHeader.unpack(data)
 
-  if self.data[:8] != constants.fdatHeader:
-   raise Exception('Wrong header')
+  if self.header.magic != fdatHeaderMagic:
+   raise Exception('Wrong magic')
 
-  if crc32(self.data[12:512]) != parse32le(self.data[8:12]):
+  if crc32(self.data[12:FdatHeader.size]) != self.header.checksum:
    raise Exception('Wrong checksum')
 
  def getTar(self):
   """Returns the contents of the main .tar file"""
-  offset = parse32le(self.data[48:52])
-  length = parse32le(self.data[52:56])
-  return memoryview(self.data)[offset:offset+length]
+  return memoryview(self.data)[self.header.tarOffset:self.header.tarOffset+self.header.tarSize]
 
  def getImg(self):
   """Returns the contents of the updater image file"""
-  offset = parse32le(self.data[68:72])
-  length = parse32le(self.data[72:76])
-  return memoryview(self.data)[offset:offset+length]
+  return memoryview(self.data)[self.header.imgOffset:self.header.imgOffset+self.header.imgSize]

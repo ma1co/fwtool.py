@@ -5,15 +5,32 @@ from zipfile import ZipFile
 
 from ..util import *
 
+ZipHeader = Struct('ZipHeader', [
+ ('magic', Struct.STR % 4),
+ ('...', 26),
+])
+zipHeaderMagic = 'PK\x03\x04'
+
+ZipEocdHeader = Struct('ZipEocdHeader', [
+ ('magic', Struct.STR % 4),
+ ('...', 16),
+ ('commentSize', Struct.INT16),
+])
+zipEocdHeaderMagic = 'PK\x05\x06'
+
 def findZip(data):
  """Guesses the location of a zip archive when there is additional data around it, returns its contents"""
- start = data.find('PK\x03\x04')
+ headerOffset = data.find(zipHeaderMagic)
+ header = ZipHeader.unpack(data, headerOffset)
 
- endOffset = len(data) - data[::-1].find('PK\x05\x06'[::-1]) - 4
- commentLen = parse16le(data[endOffset+20:endOffset+22])
+ eocdOffset = data.rfind(zipEocdHeaderMagic)
+ eocdHeader = ZipEocdHeader.unpack(data, eocdOffset)
 
- end = endOffset + 22 + commentLen
- return memoryview(data)[start:end]
+ return memoryview(data)[headerOffset:eocdOffset+ZipEocdHeader.size+eocdHeader.commentSize]
+
+def isZip(data):
+ """Returns true if the data provided is a zip file"""
+ return len(data) >= ZipHeader.size and ZipHeader.unpack(data).magic == zipHeaderMagic
 
 def readZip(data):
  """Takes the contents of a .zip file and returns a dict containing the name and contents of the contained files"""

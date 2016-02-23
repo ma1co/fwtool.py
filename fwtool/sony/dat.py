@@ -5,24 +5,45 @@ import re
 import constants
 from ..util import *
 
+DatHeader = Struct('DatHeader', [
+ ('magic', Struct.STR % 8),
+])
+datHeaderMagic = '\x89\x55\x46\x55\x0d\x0a\x1a\x0a'
+
+DatChunk = Struct('DatChunk', [
+ ('size', Struct.INT32),
+ ('type', Struct.STR % 4),
+], Struct.BIG_ENDIAN)
+
+DendChunk = Struct('DendChunk', [
+ ('crc', Struct.INT32),
+], Struct.BIG_ENDIAN)
+
 def findDat(paths):
  """Guesses the .dat file from a list of filenames"""
  return [path for path in paths if re.search('/FirmwareData_([^/]+)\.dat$', path)][0]
 
+def isDat(data):
+ """Returns true if the data provided is a dat file"""
+ return len(data) >= DatHeader.size and DatHeader.unpack(data).magic == datHeaderMagic
+
 def readDat(data):
  """Takes the contents of the .dat file and returns a dict containing the name and content of its chunks"""
- if data[:8] != constants.datHeader:
-  raise Exception('Wrong header')
+ header = DatHeader.unpack(data)
+
+ if header.magic != datHeaderMagic:
+  raise Exception('Wrong magic')
 
  chunks = {}
- offset = 8
+ offset = DatHeader.size
  while 'DEND' not in chunks:
-  length = parse32be(data[offset:offset+4])
-  type = data[offset+4:offset+8]
-  chunks[type] = memoryview(data)[offset+8:offset+8+length]
-  offset += 8 + length
+  chunk = DatChunk.unpack(data, offset)
+  offset += DatChunk.size
+  chunks[chunk.type] = memoryview(data)[offset:offset+chunk.size]
+  offset += chunk.size
 
- if crc32(memoryview(data)[:offset-12]) != parse32be(chunks['DEND']):
+ dend = DendChunk.unpack(chunks['DEND'])
+ if crc32(memoryview(data)[:offset-DatChunk.size-DendChunk.size]) != dend.crc:
   raise Exception('Wrong checksum')
 
  return chunks
