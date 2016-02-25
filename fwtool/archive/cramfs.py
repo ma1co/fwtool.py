@@ -4,6 +4,7 @@ from stat import *
 import zlib
 
 from . import *
+from .. import lz77
 from ..util import *
 
 CramfsSuper = Struct('CramfsSuper', [
@@ -38,6 +39,13 @@ def isCramfs(data):
 def readCramfs(data):
  super = CramfsSuper.unpack(data)
 
+ if super.flags & 0x10000000:
+  raise Exception('LZO compression not supported')
+ elif super.flags & 0x20000000:
+  decompress = lambda data: lz77.inflateLz77(data)[1]
+ else:
+  decompress = zlib.decompress
+
  if super.magic != cramfsSuperMagic or super.signature != cramfsSuperSignature:
   raise Exception('Wrong magic')
 
@@ -57,11 +65,11 @@ def readCramfs(data):
   path += name
   isDir = S_ISDIR(inode.mode)
 
-  if not isDir:
+  if S_ISREG(inode.mode) or S_ISLNK(inode.mode):
    nBlocks = (size - 1) / cramfsBlockSize + 1
    blockPointers = [offset+nBlocks*4] + [parse32le(data[i:i+4]) for i in xrange(offset, offset+nBlocks*4, 4)]
    blocks = [data[blockPointers[i]:blockPointers[i+1]] for i in xrange(len(blockPointers) - 1)]
-   contents = ''.join(zlib.decompress(block) for block in blocks)
+   contents = ''.join(decompress(block) for block in blocks)
   else:
    contents = None
 

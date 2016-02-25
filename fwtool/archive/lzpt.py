@@ -1,10 +1,10 @@
 """A decoder for LZPT compressed image files"""
 
-import math
 from stat import *
 from StringIO import StringIO
 
 from . import *
+from .. import lz77
 from ..util import *
 
 LzptHeader = Struct('LzptHeader', [
@@ -19,38 +19,6 @@ LzptTocEntry = Struct('LzptTocEntry', [
  ('offset', Struct.INT32),
  ('size', Struct.INT32),
 ])
-
-def decodeLz77(data):
- """Decodes LZ77 compressed data"""
- if ord(data[0]) == 0x0f:
-  l = ord(data[2]) | ord(data[3]) << 8
-  return 4+l, data[4:4+l]
- elif ord(data[0]) == 0xf0:
-  out = ''
-  offset = 1
-  lengths = range(3, 17) + [32, 64]
-
-  while True:
-   flags = ord(data[offset])
-   offset += 1
-
-   for i in xrange(8):
-    if (flags >> i) & 0x1:
-     l = lengths[ord(data[offset]) >> 4]
-     bd = (ord(data[offset]) & 0xf) << 8 | ord(data[offset + 1])
-     offset += 2
-
-     if bd == 0:
-      return offset, out
-
-     d = out[-bd:]
-     d *= int(math.ceil(l * 1. / len(d)))
-     out += d[:l]
-    else:
-     out += data[offset]
-     offset += 1
- else:
-  raise Exception('Unknown type')
 
 def isLzpt(data):
  """Checks if the LZTP header is present"""
@@ -70,7 +38,7 @@ def readLzpt(data):
 
   pos = out.tell()
   while out.tell() < pos + 2 ** header.blockSize:
-   l, decoded = decodeLz77(block.tobytes())
+   l, decoded = lz77.inflateLz77(block.tobytes())
    out.write(decoded)
    block = block[l:]
 
