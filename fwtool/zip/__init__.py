@@ -1,7 +1,11 @@
 """A simple parser for zip archives"""
 
+from collections import namedtuple
 import io
-from zipfile import ZipFile
+import time
+import zipfile
+
+ZipFile = namedtuple('ZipFile', 'size, mtime, contents')
 
 from ..util import *
 
@@ -35,7 +39,11 @@ def isZip(data):
 def readZip(data):
  """Takes the contents of a .zip file and returns a dict containing the name and contents of the contained files"""
  files = {}
- with ZipFile(io.BytesIO(data), 'r') as f:
-  for name in f.namelist():
-   files[name] = f.read(name)
+ with zipfile.ZipFile(io.BytesIO(data), 'r') as f:
+  for member in f.infolist():
+   files[member.filename] = ZipFile(
+    size = member.file_size,
+    mtime = time.mktime(member.date_time + (-1, -1, -1)),
+    contents = f.read(member),
+   )
  return files

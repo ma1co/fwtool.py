@@ -1,8 +1,10 @@
 """A decoder for LZPT compressed image files"""
 
 import math
+from stat import *
 from StringIO import StringIO
 
+from . import *
 from ..util import *
 
 LzptHeader = Struct('LzptHeader', [
@@ -72,4 +74,12 @@ def readLzpt(data):
    out.write(decoded)
    block = block[l:]
 
- return out.getvalue()
+ contents = out.getvalue()
+ return {'': UnixFile(
+  size = len(contents),
+  mtime = 0,
+  mode = S_IFREG,
+  uid = 0,
+  gid = 0,
+  contents = contents,
+ )}

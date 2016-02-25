@@ -4,19 +4,39 @@
 import argparse
 import os
 import re
+from stat import *
 
-from fwtool import lzpt, pe, tar, zip
+from fwtool import archive, pe, zip
 from fwtool.sony import dat, fdat
 
-def writeFile(dir, path, data):
- """Writes data to dir/path"""
- fn = os.path.join(dir, path)
+def mkdirs(path):
  try:
-  os.makedirs(os.path.dirname(fn))
+  os.makedirs(path)
  except OSError:
   pass
- with open(fn, 'wb') as f:
-  f.write(data)
+
+def setmtime(path, time):
+ os.utime(path, (time, time))
+
+def writeFileTree(files, path):
+ """Writes a dict of UnixFiles to the disk, unpacking known archive files"""
+ for fn, file in files.iteritems():
+  fn = path + fn
+  if S_ISDIR(file.mode):
+   mkdirs(fn)
+  elif S_ISREG(file.mode):
+   mkdirs(os.path.dirname(fn))
+   with open(fn, 'wb') as f:
+    f.write(file.contents)
+   if archive.isArchive(file.contents):
+    print 'Unpacking %s' % fn
+    writeFileTree(archive.readArchive(file.contents), fn + '_unpacked')
+
+ # Set mtimes:
+ for fn, file in files.iteritems():
+  fn = path + fn
+  if S_ISDIR(file.mode) or S_ISREG(file.mode):
+   setmtime(fn, file.mtime)
 
 def unpackCommand(file, outDir):
  """Extracts the firmware image from the updater executable, unpacks it and extracts it to the specified directory"""
@@ -27,24 +47,21 @@ def unpackCommand(file, outDir):
  zipFile = zip.readZip(zip.findZip(exeFile['_winzip_'].tobytes()))
 
  print 'Reading .dat file'
- datFile = dat.readDat(zipFile[dat.findDat(zipFile.keys())])
+ datZipFile = zipFile[dat.findDat(zipFile.keys())]
+ mtime = datZipFile.mtime
+ datFile = dat.readDat(datZipFile.contents)
 
  print 'Decoding firmware image'
  firmwareData = fdat.decryptFdat(datFile['FDAT'].tobytes())
 
- print 'Extracting updater image'
- writeFile(outDir, 'updater.img', firmwareData.getImg())
-
- print 'Decompressing .tar file'
- tarFile = tar.readTar(firmwareData.getTar())
+ tarData = firmwareData.getTar()
+ updaterData = firmwareData.getImg().tobytes()
 
  print 'Extracting files'
- for path, data in tarFile.iteritems():
-  if not re.search('^\d{4}_([^/]+)_sum/\\1\.sum$', path):
-   if path.startswith('0700_part_image/dev/nflash') and lzpt.isLzpt(data):
-    print 'Decompressing file system image ' + os.path.basename(path)
-    data = lzpt.readLzpt(data)
-   writeFile(outDir, path, data)
+ writeFileTree({
+  '/firmware.tar': archive.UnixFile(size = len(tarData), mtime = mtime, mode = S_IFREG, uid = 0, gid = 0, contents = tarData),
+  '/updater.img': archive.UnixFile(size = len(updaterData), mtime = mtime, mode = S_IFREG, uid = 0, gid = 0, contents = updaterData),
+ }, outDir)
 
  print 'Done'
 

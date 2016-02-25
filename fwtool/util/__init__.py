@@ -5,6 +5,12 @@ import struct
 
 from collections import namedtuple
 
+def parse64be(data):
+ return struct.unpack('>Q', data)[0]
+
+def parse64le(data):
+ return struct.unpack('<Q', data)[0]
+
 def parse32be(data):
  return struct.unpack('>I', data)[0]
 
@@ -19,6 +25,9 @@ def parse16le(data):
 
 def parse16leArr(data):
  return struct.unpack('<%sH' % str(len(data) / 2), data)
+
+def parse8(data):
+ return ord(data)
 
 def crc32(data):
  return binascii.crc32(data) & 0xffffffff
