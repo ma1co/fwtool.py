@@ -43,11 +43,12 @@ def readLzpt(file):
    while dstFile.tell() < pos + 2 ** header.blockSize:
     dstFile.write(lz77.inflateLz77(block))
 
- return {'': UnixFile(
+ yield UnixFile(
+  path = '',
   size = -1,
   mtime = 0,
   mode = S_IFREG,
   uid = 0,
   gid = 0,
   extractTo = extractTo,
- )}
+ )

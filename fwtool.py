@@ -20,8 +20,8 @@ def setmtime(path, time):
 
 def writeFileTree(files, path):
  """Writes a dict of UnixFiles to the disk, unpacking known archive files"""
- for fn, file in files.iteritems():
-  fn = path + fn
+ for file in files:
+  fn = path + file.path
   if S_ISDIR(file.mode):
    mkdirs(fn)
   elif S_ISREG(file.mode):
@@ -33,8 +33,8 @@ def writeFileTree(files, path):
      writeFileTree(archive.readArchive(dstFile), fn + '_unpacked')
 
  # Set mtimes:
- for fn, file in files.iteritems():
-  fn = path + fn
+ for file in files:
+  fn = path + file.path
   if S_ISDIR(file.mode) or S_ISREG(file.mode):
    setmtime(fn, file.mtime)
 
@@ -47,7 +47,7 @@ def unpackCommand(file, outDir):
 
  print 'Decompressing installer data'
  zipFile = exeSectors['_winzip_']
- zippedFiles = zip.readZip(zipFile)
+ zippedFiles = dict((file.path, file) for file in zip.readZip(zipFile))
 
  print 'Reading .dat file'
  datFile = open(outDir + '/firmware.dat', 'w+b')
@@ -62,8 +62,9 @@ def unpackCommand(file, outDir):
  fdat.decryptFdat(encryptedFdatFile, fdatFile)
  fdatContents = fdat.readFdat(fdatFile)
 
- def toUnixFile(file):
+ def toUnixFile(path, file):
   return archive.UnixFile(
+   path = path,
    size = -1,
    mtime = mtime,
    mode = S_IFREG,
@@ -73,10 +74,10 @@ def unpackCommand(file, outDir):
   )
 
  print 'Extracting files'
- writeFileTree({
-  '/firmware.tar': toUnixFile(fdatContents.tar),
-  '/updater.img': toUnixFile(fdatContents.img),
- }, outDir)
+ writeFileTree([
+  toUnixFile('/firmware.tar', fdatContents.tar),
+  toUnixFile('/updater.img', fdatContents.img),
+ ], outDir)
 
  print 'Done'
 

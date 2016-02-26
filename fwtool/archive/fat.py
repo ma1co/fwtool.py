@@ -74,7 +74,6 @@ def readFat(file):
  else:
   raise Exception('Unknown FAT width')
 
- files = {}
  def readDir(entries, path=''):
   offset = 0
   vfatName = ''
@@ -107,7 +106,8 @@ def readFat(file):
         dstFile.write(block if isDir else block[:size-dstFile.tell()])
         cluster = clusters[cluster]
 
-      files[path + '/' + name] = UnixFile(
+      yield UnixFile(
+       path = path + '/' + name,
        size = entry.size,
        mtime = time.mktime((1980 + (entry.date >> 9), (entry.date >> 5) & 0xf, entry.date & 0x1f, entry.time >> 11, (entry.time >> 5) & 0x3f, (entry.time & 0x1f) * 2, -1, -1, -1)),
        mode = S_IFDIR if isDir else S_IFREG,
@@ -119,10 +119,11 @@ def readFat(file):
       if isDir:
        contents = io.BytesIO()
        extractTo(contents)
-       readDir(contents.getvalue(), path + '/' + name)
+       for f in readDir(contents.getvalue(), path + '/' + name):
+        yield f
 
    offset += FatDirEntry.size
 
  file.seek(rootOffset)
- readDir(file.read(dataOffset - rootOffset))
- return files
+ for f in readDir(file.read(dataOffset - rootOffset)):
+  yield f

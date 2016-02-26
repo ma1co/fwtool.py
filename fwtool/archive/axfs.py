@@ -72,7 +72,6 @@ def readAxfs(file):
    regionData = regions[k].read()
    tables[k] = [sum([ord(regionData[j * region.maxIndex + i]) << (8*j) for j in xrange(region.tableByteDepth)]) for i in xrange(region.maxIndex)]
 
- files = {}
  def readInode(id, path=''):
   size = tables['fileSize'][id]
   nameOffset = tables['nameOffset'][id]
@@ -110,7 +109,8 @@ def readAxfs(file):
    if dstFile.tell() != size:
     raise Exception('Wrong resulting file size')
 
-  files[path] = UnixFile(
+  yield UnixFile(
+   path = path,
    size = size if not isDir else 0,
    mtime = 0,
    mode = mode,
@@ -121,7 +121,8 @@ def readAxfs(file):
 
   if isDir:
    for i in xrange(numEntries):
-    readInode(arrayIndex + i, path + '/')
+    for f in readInode(arrayIndex + i, path + '/'):
+     yield f
 
- readInode(0)
- return files
+ for f in readInode(0):
+  yield f

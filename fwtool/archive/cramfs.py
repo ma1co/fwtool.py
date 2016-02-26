@@ -52,8 +52,8 @@ def readCramfs(file):
  if crc32(FilePart(file, 0, 32), io.BytesIO(4 * '\x00'), FilePart(file, 36)) != super.crc:
   raise Exception('Wrong checksum')
 
- files = {}
- def readInode(off, path=''):
+ def readInode(path=''):
+  off = file.tell()
   inode = CramfsInode.unpack(file, off)
 
   size = inode.size_gid & 0xffffff
@@ -77,7 +77,8 @@ def readCramfs(file):
    if dstFile.tell() != size:
     raise Exception('Wrong resulting file size')
 
-  files[path] = UnixFile(
+  yield UnixFile(
+   path = path,
    size = size if not isDir else 0,
    mtime = 0,
    mode = inode.mode,
@@ -87,11 +88,13 @@ def readCramfs(file):
   )
 
   if isDir:
-   end = offset + size
-   while offset < end:
-    offset += readInode(offset, path + '/')
+   file.seek(offset)
+   while file.tell() < offset + size:
+    for f in readInode(path + '/'):
+     yield f
 
-  return CramfsInode.size + nameLen
+  file.seek(off + CramfsInode.size + nameLen)
 
- readInode(CramfsSuper.size)
- return files
+ file.seek(CramfsSuper.size)
+ for f in readInode():
+  yield f

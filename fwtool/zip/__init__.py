@@ -5,7 +5,7 @@ import shutil
 import time
 import zipfile
 
-ZipFile = namedtuple('ZipFile', 'size, mtime, extractTo')
+ZipFile = namedtuple('ZipFile', 'path, size, mtime, extractTo')
 
 from ..util import *
 
@@ -21,13 +21,12 @@ def isZip(file):
  return header and header.magic == zipHeaderMagic
 
 def readZip(file):
- """Takes the a .zip file and returns a dict of the contained files"""
- files = {}
+ """Takes the a .zip file and returns the contained files"""
  zip = zipfile.ZipFile(file, 'r')
  for member in zip.infolist():
-  files[member.filename] = ZipFile(
+  yield ZipFile(
+   path = member.filename,
    size = member.file_size,
    mtime = time.mktime(member.date_time + (-1, -1, -1)),
    extractTo = lambda dstFile, member=member: shutil.copyfileobj(zip.open(member), dstFile),
   )
- return files

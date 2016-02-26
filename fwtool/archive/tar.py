@@ -32,12 +32,12 @@ def isTar(file):
  return header and header.magic == tarHeaderMagic
 
 def readTar(file):
- """Unpacks a .tar file and returns a dict of the contained files"""
+ """Unpacks a .tar file and returns a the contained files"""
  file.seek(0)
- files = {}
  with tarfile.TarFile(fileobj=file) as tar:
   for member in tar:
-   files['/' + member.name] = UnixFile(
+   yield UnixFile(
+    path = '/' + member.name,
     size = member.size,
     mtime = member.mtime,
     mode = _convertFileType(member.type) | member.mode,
@@ -45,4 +45,3 @@ def readTar(file):
     gid = member.gid,
     extractTo = lambda dstFile, srcFile=tar.extractfile(member): shutil.copyfileobj(srcFile, dstFile),
    )
- return files

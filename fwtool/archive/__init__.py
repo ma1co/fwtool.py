@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-UnixFile = namedtuple('UnixFile', 'size, mtime, mode, uid, gid, extractTo')
+UnixFile = namedtuple('UnixFile', 'path, size, mtime, mode, uid, gid, extractTo')
 
 from . import axfs, cramfs, ext2, fat, lzpt, tar
 

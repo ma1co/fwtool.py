@@ -65,7 +65,6 @@ def readExt2(file):
  numBlockGroups = (header.blocksCount - 1) / header.blocksPerGroup + 1
  inodeTables = [Ext2Bgd.unpack(file, bdgOffset + i * Ext2Bgd.size).inodeTableBlock for i in xrange(numBlockGroups)]
 
- files = {}
  def readInode(i, path = ''):
   inode = Ext2Inode.unpack(file, inodeTables[(i-1)/header.inodesPerGroup] * blockSize + ((i-1)%header.inodesPerGroup) * Ext2Inode.size)
 
@@ -88,7 +87,8 @@ def readExt2(file):
 
   isDir = S_ISDIR(inode.mode)
 
-  files[path] = UnixFile(
+  yield UnixFile(
+   path = path,
    size = inode.size if not isDir else 0,
    mtime = inode.mtime,
    mode = inode.mode,
@@ -106,8 +106,9 @@ def readExt2(file):
     entry = Ext2DirEntry.unpack(contents, offset)
     name = contents[offset+Ext2DirEntry.size:offset+Ext2DirEntry.size+entry.nameSize]
     if name != '.' and name != '..':
-     readInode(entry.inode, path + '/' + name)
+     for f in readInode(entry.inode, path + '/' + name):
+      yield f
     offset += entry.size
 
- readInode(2)
- return files
+ for f in readInode(2):
+  yield f
