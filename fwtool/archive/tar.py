@@ -1,6 +1,6 @@
 """A simple parser for tar archives"""
 
-import io
+import shutil
 from stat import *
 import tarfile
 
@@ -26,21 +26,23 @@ def _convertFileType(type):
   tarfile.FIFOTYPE: S_IFIFO,
  }.get(type, S_IFREG)
 
-def isTar(data):
- """Returns true if the data provided is a tar file"""
- return len(data) >= TarHeader.size and TarHeader.unpack(data).magic == tarHeaderMagic
+def isTar(file):
+ """Returns true if the file provided is a tar file"""
+ header = TarHeader.unpack(file)
+ return header and header.magic == tarHeaderMagic
 
-def readTar(data):
- """Takes the contents of a .tar file and returns a dict containing the name and contents of the contained files"""
+def readTar(file):
+ """Unpacks a .tar file and returns a dict of the contained files"""
+ file.seek(0)
  files = {}
- with tarfile.TarFile(fileobj=io.BytesIO(data)) as f:
-  for member in f:
+ with tarfile.TarFile(fileobj=file) as tar:
+  for member in tar:
    files['/' + member.name] = UnixFile(
     size = member.size,
     mtime = member.mtime,
     mode = _convertFileType(member.type) | member.mode,
     uid = member.uid,
     gid = member.gid,
-    contents = f.extractfile(member).read() if member.isfile() else None,
+    extractTo = lambda dstFile, srcFile=tar.extractfile(member): shutil.copyfileobj(srcFile, dstFile),
    )
  return files

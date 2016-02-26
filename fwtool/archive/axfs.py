@@ -4,6 +4,7 @@ from stat import *
 import zlib
 
 from . import *
+from ..io import FilePart
 from ..util import *
 
 AxfsHeader = Struct('AxfsHeader', [
@@ -53,57 +54,61 @@ axfsRegions = [
  'gids',
 ]
 
-def isAxfs(data):
- if len(data) >= AxfsHeader.size:
-  header = AxfsHeader.unpack(data)
-  return header.magic == axfsHeaderMagic and header.signature == axfsHeaderSignature
- return False
+def isAxfs(file):
+ header = AxfsHeader.unpack(file)
+ return header and header.magic == axfsHeaderMagic and header.signature == axfsHeaderSignature
 
-def readAxfs(data):
- header = AxfsHeader.unpack(data)
+def readAxfs(file):
+ header = AxfsHeader.unpack(file)
  if header.magic != axfsHeaderMagic or header.signature != axfsHeaderSignature:
   raise Exception('Wrong magic')
 
  regions = {}
  tables = {}
  for i, k in enumerate(axfsRegions):
-  region = AxfsRegionDesc.unpack(data, parse64be(header.regions[i*8:(i+1)*8]))
-  regionData = data[region.offset:region.offset+region.size]
+  region = AxfsRegionDesc.unpack(file, parse64be(header.regions[i*8:(i+1)*8]))
+  regions[k] = FilePart(file, region.offset, region.size)
   if i >= 4:
+   regionData = regions[k].read()
    tables[k] = [sum([ord(regionData[j * region.maxIndex + i]) << (8*j) for j in xrange(region.tableByteDepth)]) for i in xrange(region.maxIndex)]
-  else:
-   regions[k] = regionData
 
  files = {}
  def readInode(id, path=''):
   size = tables['fileSize'][id]
   nameOffset = tables['nameOffset'][id]
-  name = regions['strings'][nameOffset:regions['strings'].index('\x00', nameOffset)]
   mode = tables['modes'][tables['modeIndex'][id]]
   uid = tables['uids'][tables['modeIndex'][id]]
   gid = tables['gids'][tables['modeIndex'][id]]
   numEntries = tables['numEntries'][id]
   arrayIndex = tables['arrayIndex'][id]
 
+  name = ''
+  regions['strings'].seek(nameOffset)
+  while '\x00' not in name:
+   name += regions['strings'].read(1024)
+  name = name.partition('\x00')[0]
+
   path += name if id != 0 else ''
   isDir = S_ISDIR(mode)
 
-  if not isDir:
-   contents = ''
+  def extractTo(dstFile, arrayIndex=arrayIndex, numEntries=numEntries, size=size):
    for i in xrange(numEntries):
     nodeType = tables['nodeType'][arrayIndex + i]
     nodeIndex = tables['nodeIndex'][arrayIndex + i]
     if nodeType == 0:
-     o = nodeIndex << 12
-     contents += regions['xip'][o:o+4096]
+     regions['xip'].seek(nodeIndex << 12)
+     dstFile.write(regions['xip'].read(4096))
     elif nodeType == 1:
-     o = tables['cblockOffset'][tables['cnodeIndex'][nodeIndex]]
-     contents += zlib.decompress(regions['compressed'][o:])
+     cnodeIndex = tables['cnodeIndex'][nodeIndex]
+     regions['compressed'].seek(tables['cblockOffset'][cnodeIndex])
+     dstFile.write(zlib.decompress(regions['compressed'].read(tables['cblockOffset'][cnodeIndex+1] - tables['cblockOffset'][cnodeIndex])))
     elif nodeType == 2:
-     o = tables['banodeOffset'][nodeIndex]
-     contents += regions['byteAligned'][o:o+size]
-  else:
-   contents = None
+     regions['byteAligned'].seek(tables['banodeOffset'][nodeIndex])
+     dstFile.write(regions['byteAligned'].read(size - dstFile.tell()))
+    else:
+     raise Exception('Unknown type')
+   if dstFile.tell() != size:
+    raise Exception('Wrong resulting file size')
 
   files[path] = UnixFile(
    size = size if not isDir else 0,
@@ -111,7 +116,7 @@ def readAxfs(data):
    mode = mode,
    uid = uid,
    gid = gid,
-   contents = contents,
+   extractTo = extractTo,
   )
 
   if isDir:

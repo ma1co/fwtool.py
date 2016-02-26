@@ -1,5 +1,6 @@
 """A parser for ext2 file system images"""
 
+import io
 from stat import *
 
 from . import *
@@ -48,11 +49,12 @@ Ext2DirEntry = Struct('Ext2DirEntry', [
  ('fileType', Struct.INT8),
 ])
 
-def isExt2(data):
- return len(data) >= Ext2Header.size and Ext2Header.unpack(data).magic == ext2HeaderMagic
+def isExt2(file):
+ header = Ext2Header.unpack(file)
+ return header and header.magic == ext2HeaderMagic
 
-def readExt2(data):
- header = Ext2Header.unpack(data)
+def readExt2(file):
+ header = Ext2Header.unpack(file)
 
  if header.magic != ext2HeaderMagic:
   raise Exception('Wrong magic')
@@ -61,17 +63,28 @@ def readExt2(data):
 
  bdgOffset = max(blockSize, 2048)
  numBlockGroups = (header.blocksCount - 1) / header.blocksPerGroup + 1
- inodeTables = [Ext2Bgd.unpack(data, bdgOffset + i * Ext2Bgd.size).inodeTableBlock for i in xrange(numBlockGroups)]
+ inodeTables = [Ext2Bgd.unpack(file, bdgOffset + i * Ext2Bgd.size).inodeTableBlock for i in xrange(numBlockGroups)]
 
  files = {}
  def readInode(i, path = ''):
-  inode = Ext2Inode.unpack(data, inodeTables[(i-1)/header.inodesPerGroup] * blockSize + ((i-1)%header.inodesPerGroup) * Ext2Inode.size)
+  inode = Ext2Inode.unpack(file, inodeTables[(i-1)/header.inodesPerGroup] * blockSize + ((i-1)%header.inodesPerGroup) * Ext2Inode.size)
 
-  contents = inode.blocks
-  for i in [56, 52, 48, 0]:
-   ptrs = [parse32le(contents[j:j+4]) for j in xrange(i, len(contents), 4)]
-   contents = contents[:i] + ''.join([data[ptr*blockSize:(ptr+1)*blockSize] for ptr in ptrs if ptr != 0])
-  contents = contents[:inode.size]
+  def extractTo(dstFile, contents=inode.blocks, size=inode.size):
+   ptrs = []
+   for i in xrange(15, 11, -1):
+    # resolve indirect pointers
+    contents = contents[:i*4]
+    for ptr in ptrs[i:]:
+     if ptr != 0:
+      file.seek(ptr * blockSize)
+      contents += file.read(blockSize)
+    ptrs = [parse32le(contents[j:j+4]) for j in xrange(0, len(contents), 4)]
+
+   for ptr in ptrs:
+    if ptr != 0 and dstFile.tell() < size:
+     file.seek(ptr * blockSize)
+     block = file.read(blockSize)
+     dstFile.write(block[:size-dstFile.tell()])
 
   isDir = S_ISDIR(inode.mode)
 
@@ -81,10 +94,13 @@ def readExt2(data):
    mode = inode.mode,
    uid = inode.uid,
    gid = inode.gid,
-   contents = contents if not isDir else None,
+   extractTo = extractTo,
   )
 
   if isDir:
+   contents = io.BytesIO()
+   extractTo(contents)
+   contents = contents.getvalue()
    offset = 0
    while offset < len(contents):
     entry = Ext2DirEntry.unpack(contents, offset)

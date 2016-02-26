@@ -2,6 +2,7 @@
 
 from collections import OrderedDict
 
+from ..io import FilePart
 from ..util import *
 
 DosHeader = Struct('DosHeader', [
@@ -29,22 +30,23 @@ SectionHeader = Struct('SectionHeader', [
  ('...', 16),
 ])
 
-def isExe(data):
- return len(data) >= DosHeader.size and DosHeader.unpack(data).magic == dosHeaderMagic
+def isExe(file):
+ header = DosHeader.unpack(file)
+ return header and header.magic == dosHeaderMagic
 
-def readExe(data):
- """Takes the contents of a PE file and returns a dict containing the name and content of all sections"""
- dosHeader = DosHeader.unpack(data)
+def readExe(file):
+ """Takes the a PE file and returns a dict containing the sections"""
+ dosHeader = DosHeader.unpack(file)
  if dosHeader.magic != dosHeaderMagic:
   raise Exception('Wrong magic')
 
- peHeader = PeHeader.unpack(data, dosHeader.peHeaderOffset)
+ peHeader = PeHeader.unpack(file, dosHeader.peHeaderOffset)
  if peHeader.magic != peHeaderMagic:
   raise Exception('Wrong magic')
 
  sections = OrderedDict()
  for i in xrange(peHeader.numSections):
-  section = SectionHeader.unpack(data, dosHeader.peHeaderOffset + PeHeader.size + peHeader.optionalSize + i * SectionHeader.size)
-  sections[section.type] = memoryview(data)[section.offset:section.offset+section.size]
+  section = SectionHeader.unpack(file, dosHeader.peHeaderOffset + PeHeader.size + peHeader.optionalSize + i * SectionHeader.size)
+  sections[section.type] = FilePart(file, section.offset, section.size)
 
  return sections

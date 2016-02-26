@@ -1,7 +1,6 @@
 """A decoder for LZPT compressed image files"""
 
 from stat import *
-from StringIO import StringIO
 
 from . import *
 from .. import lz77
@@ -20,34 +19,36 @@ LzptTocEntry = Struct('LzptTocEntry', [
  ('size', Struct.INT32),
 ])
 
-def isLzpt(data):
+def isLzpt(file):
  """Checks if the LZTP header is present"""
- return len(data) >= LzptHeader.size and LzptHeader.unpack(data).magic == lzptHeaderMagic
+ header = LzptHeader.unpack(file)
+ return header and header.magic == lzptHeaderMagic
 
-def readLzpt(data):
+def readLzpt(file):
  """Decodes an LZTP image and returns its contents"""
- header = LzptHeader.unpack(data)
+ header = LzptHeader.unpack(file)
 
  if header.magic != lzptHeaderMagic:
   raise Exception('Wrong magic')
 
- out = StringIO()
- for offset in xrange(header.tocOffset, header.tocOffset+header.tocSize, LzptTocEntry.size):
-  tocEntry = LzptTocEntry.unpack(data, offset)
-  block = memoryview(data)[tocEntry.offset:tocEntry.offset+tocEntry.size]
+ tocEntries = [LzptTocEntry.unpack(file, header.tocOffset + offset) for offset in xrange(0, header.tocSize, LzptTocEntry.size)]
 
-  pos = out.tell()
-  while out.tell() < pos + 2 ** header.blockSize:
-   l, decoded = lz77.inflateLz77(block.tobytes())
-   out.write(decoded)
-   block = block[l:]
+ def extractTo(dstFile):
+  for entry in tocEntries:
+   file.seek(entry.offset)
+   block = file.read(entry.size)
 
- contents = out.getvalue()
+   pos = dstFile.tell()
+   while dstFile.tell() < pos + 2 ** header.blockSize:
+    l, decoded = lz77.inflateLz77(block)
+    dstFile.write(decoded)
+    block = block[l:]
+
  return {'': UnixFile(
-  size = len(contents),
+  size = -1,
   mtime = 0,
   mode = S_IFREG,
   uid = 0,
   gid = 0,
-  contents = contents,
+  extractTo = extractTo,
  )}

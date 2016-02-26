@@ -9,8 +9,3 @@ cipherV2 = AES.AESCipher('\xE3\xB0\xC4\x42\x98\xFC\x1C\x14\x9A\xFB\xF4\xC8\x99\x
 
 # AES key for 3rd gen firmware files
 cipherV3 = AES.AESCipher('\xE8\xB0\x88\x6D\x97\x18\x4F\x1F\x65\xC7\x67\xF7\x93\x99\x65\xBF', AES.MODE_ECB)
-
-# Block sizes for different firmware file generations
-blockSizeV1 = 1000
-blockSizeV2 = 1024
-blockSizeV3 = 1024

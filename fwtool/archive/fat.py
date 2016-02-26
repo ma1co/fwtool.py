@@ -1,5 +1,6 @@
 """A parser for FAT file system images"""
 
+import io
 from stat import *
 import time
 
@@ -48,14 +49,12 @@ VfatDirEntry = Struct('VfatDirEntry', [
  ('name3', Struct.STR % 4),
 ])
 
-def isFat(data):
- if len(data) >= FatHeader.size:
-  header = FatHeader.unpack(data)
-  return header.signature == fatHeaderSignature and header.extendedSignature == fatHeaderExtendedSignature and header.fsType.startswith('FAT')
- return False
+def isFat(file):
+ header = FatHeader.unpack(file)
+ return header and header.signature == fatHeaderSignature and header.extendedSignature == fatHeaderExtendedSignature and header.fsType.startswith('FAT')
 
-def readFat(data):
- header = FatHeader.unpack(data)
+def readFat(file):
+ header = FatHeader.unpack(file)
 
  if header.signature != fatHeaderSignature or header.extendedSignature != fatHeaderExtendedSignature:
   raise Exception('Wrong magic')
@@ -64,15 +63,14 @@ def readFat(data):
  rootOffset = fatOffset + header.fatCopies * header.sectorsPerFat * header.bytesPerSector
  dataOffset = rootOffset + ((header.rootEntries * FatDirEntry.size - 1) / header.bytesPerSector + 1) * header.bytesPerSector
 
+ file.seek(fatOffset)
  if header.fsType == 'FAT12   ':
-  clusters = []
   endMarker = 0xfff
-  for o in xrange(fatOffset, fatOffset + header.sectorsPerFat * header.bytesPerSector, 3):
-   d = parse32le(data[o:o+4])
-   clusters += [d & 0xfff, (d >> 12) & 0xfff]
+  packedClusters = [parse32le(file.read(3) + '\x00') for i in xrange(0, header.sectorsPerFat * header.bytesPerSector, 3)]
+  clusters = [cluster for packed in packedClusters for cluster in [packed & 0xfff, (packed >> 12) & 0xfff]]
  elif header.fsType == 'FAT16   ':
-  clusters = [parse16le(data[o:o+2]) for o in xrange(fatOffset, fatOffset + header.sectorsPerFat * header.bytesPerSector, 2)]
   endMarker = 0xffff
+  clusters = [parse16le(file.read(2)) for i in xrange(0, header.sectorsPerFat * header.bytesPerSector, 2)]
  else:
   raise Exception('Unknown FAT width')
 
@@ -102,12 +100,12 @@ def readFat(data):
      if name != '.' and name != '..':
       isDir = entry.attr & 0x10
 
-      contents = ''
-      cluster = entry.cluster
-      while cluster != 0 and cluster != endMarker:
-       o = dataOffset + (cluster - 2) * header.sectorsPerCluster * header.bytesPerSector
-       contents += data[o:o + header.sectorsPerCluster * header.bytesPerSector]
-       cluster = clusters[cluster]
+      def extractTo(dstFile, cluster=entry.cluster, size=entry.size, isDir=isDir):
+       while cluster != 0 and cluster != endMarker and (dstFile.tell() < size or isDir):
+        file.seek(dataOffset + (cluster - 2) * header.sectorsPerCluster * header.bytesPerSector)
+        block = file.read(header.sectorsPerCluster * header.bytesPerSector)
+        dstFile.write(block if isDir else block[:size-dstFile.tell()])
+        cluster = clusters[cluster]
 
       files[path + '/' + name] = UnixFile(
        size = entry.size,
@@ -115,13 +113,16 @@ def readFat(data):
        mode = S_IFDIR if isDir else S_IFREG,
        uid = 0,
        gid = 0,
-       contents = contents[:entry.size] if not isDir else None,
+       extractTo = extractTo,
       )
 
       if isDir:
-       readDir(contents, path + '/' + name)
+       contents = io.BytesIO()
+       extractTo(contents)
+       readDir(contents.getvalue(), path + '/' + name)
 
    offset += FatDirEntry.size
 
- readDir(data[rootOffset:dataOffset])
+ file.seek(rootOffset)
+ readDir(file.read(dataOffset - rootOffset))
  return files

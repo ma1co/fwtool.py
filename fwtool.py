@@ -3,7 +3,7 @@
 
 import argparse
 import os
-import re
+import shutil
 from stat import *
 
 from fwtool import archive, pe, zip
@@ -26,11 +26,11 @@ def writeFileTree(files, path):
    mkdirs(fn)
   elif S_ISREG(file.mode):
    mkdirs(os.path.dirname(fn))
-   with open(fn, 'wb') as f:
-    f.write(file.contents)
-   if archive.isArchive(file.contents):
-    print 'Unpacking %s' % fn
-    writeFileTree(archive.readArchive(file.contents), fn + '_unpacked')
+   with open(fn, 'w+b') as dstFile:
+    file.extractTo(dstFile)
+    if archive.isArchive(dstFile):
+     print 'Unpacking %s' % fn
+     writeFileTree(archive.readArchive(dstFile), fn + '_unpacked')
 
  # Set mtimes:
  for fn, file in files.iteritems():
@@ -40,27 +40,42 @@ def writeFileTree(files, path):
 
 def unpackCommand(file, outDir):
  """Extracts the firmware image from the updater executable, unpacks it and extracts it to the specified directory"""
+ mkdirs(outDir)
+
  print 'Reading installer binary'
- exeFile = pe.readExe(file.read())
+ exeSectors = pe.readExe(file)
 
  print 'Decompressing installer data'
- zipFile = zip.readZip(zip.findZip(exeFile['_winzip_'].tobytes()))
+ zipFile = exeSectors['_winzip_']
+ zippedFiles = zip.readZip(zipFile)
 
  print 'Reading .dat file'
- datZipFile = zipFile[dat.findDat(zipFile.keys())]
- mtime = datZipFile.mtime
- datFile = dat.readDat(datZipFile.contents)
+ datFile = open(outDir + '/firmware.dat', 'w+b')
+ zippedDatFile = zippedFiles[dat.findDat(zippedFiles.keys())]
+ zippedDatFile.extractTo(datFile)
+ mtime = zippedDatFile.mtime
+ datChunks = dat.readDat(datFile)
 
  print 'Decoding firmware image'
- firmwareData = fdat.decryptFdat(datFile['FDAT'].tobytes())
+ fdatFile = open(outDir + '/firmware.fdat', 'w+b')
+ encryptedFdatFile = datChunks['FDAT']
+ fdat.decryptFdat(encryptedFdatFile, fdatFile)
+ fdatContents = fdat.readFdat(fdatFile)
 
- tarData = firmwareData.getTar()
- updaterData = firmwareData.getImg().tobytes()
+ def toUnixFile(file):
+  return archive.UnixFile(
+   size = -1,
+   mtime = mtime,
+   mode = S_IFREG,
+   uid = 0,
+   gid = 0,
+   extractTo = lambda dstFile: shutil.copyfileobj(file, dstFile)
+  )
 
  print 'Extracting files'
  writeFileTree({
-  '/firmware.tar': archive.UnixFile(size = len(tarData), mtime = mtime, mode = S_IFREG, uid = 0, gid = 0, contents = tarData),
-  '/updater.img': archive.UnixFile(size = len(updaterData), mtime = mtime, mode = S_IFREG, uid = 0, gid = 0, contents = updaterData),
+  '/firmware.tar': toUnixFile(fdatContents.tar),
+  '/updater.img': toUnixFile(fdatContents.img),
  }, outDir)
 
  print 'Done'

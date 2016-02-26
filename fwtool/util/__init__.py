@@ -29,8 +29,12 @@ def parse16leArr(data):
 def parse8(data):
  return ord(data)
 
-def crc32(data):
- return binascii.crc32(data) & 0xffffffff
+def crc32(*files):
+ crc = 0
+ for file in files:
+  for chunk in iter(lambda: file.read(4096), ''):
+   crc = binascii.crc32(chunk, crc)
+ return crc & 0xffffffff
 
 class Struct:
  LITTLE_ENDIAN = '<'
@@ -49,4 +53,11 @@ class Struct:
   self.size = struct.calcsize(self.format)
 
  def unpack(self, data, offset = 0):
-  return self.tuple._make(struct.unpack_from(self.format, data, offset))
+  if isinstance(data, basestring):
+   data = data[offset:]
+  else:
+   data.seek(offset)
+   data = data.read(self.size)
+  if len(data) < self.size:
+   return None
+  return self.tuple._make(struct.unpack_from(self.format, data))

@@ -4,6 +4,7 @@ from collections import OrderedDict
 import re
 
 import constants
+from ..io import FilePart
 from ..util import *
 
 DatHeader = Struct('DatHeader', [
@@ -24,13 +25,14 @@ def findDat(paths):
  """Guesses the .dat file from a list of filenames"""
  return [path for path in paths if re.search('/FirmwareData_([^/]+)\.dat$', path)][0]
 
-def isDat(data):
+def isDat(file):
  """Returns true if the data provided is a dat file"""
- return len(data) >= DatHeader.size and DatHeader.unpack(data).magic == datHeaderMagic
+ header = DatHeader.unpack(file)
+ return header and header.magic == datHeaderMagic
 
-def readDat(data):
- """Takes the contents of the .dat file and returns a dict containing the name and content of its chunks"""
- header = DatHeader.unpack(data)
+def readDat(file):
+ """Takes a .dat file and returns a dict of its chunks"""
+ header = DatHeader.unpack(file)
 
  if header.magic != datHeaderMagic:
   raise Exception('Wrong magic')
@@ -38,13 +40,13 @@ def readDat(data):
  chunks = OrderedDict()
  offset = DatHeader.size
  while 'DEND' not in chunks:
-  chunk = DatChunk.unpack(data, offset)
+  chunk = DatChunk.unpack(file, offset)
   offset += DatChunk.size
-  chunks[chunk.type] = memoryview(data)[offset:offset+chunk.size]
+  chunks[chunk.type] = FilePart(file, offset, chunk.size)
   offset += chunk.size
 
  dend = DendChunk.unpack(chunks['DEND'])
- if crc32(memoryview(data)[:offset-DatChunk.size-DendChunk.size]) != dend.crc:
+ if crc32(FilePart(file, 0, offset - DatChunk.size - DendChunk.size)) != dend.crc:
   raise Exception('Wrong checksum')
 
  return chunks

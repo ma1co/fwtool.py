@@ -1,9 +1,11 @@
 """A parser for cramfs file system images"""
 
+import io
 from stat import *
 import zlib
 
 from . import *
+from ..io import FilePart
 from .. import lz77
 from ..util import *
 
@@ -30,14 +32,12 @@ CramfsInode = Struct('CramfsInode', [
  ('nameLen_offset', Struct.INT32),
 ])
 
-def isCramfs(data):
- if len(data) >= CramfsSuper.size:
-  super = CramfsSuper.unpack(data)
-  return super.magic == cramfsSuperMagic and super.signature == cramfsSuperSignature
- return False
+def isCramfs(file):
+ super = CramfsSuper.unpack(file)
+ return super and super.magic == cramfsSuperMagic and super.signature == cramfsSuperSignature
 
-def readCramfs(data):
- super = CramfsSuper.unpack(data)
+def readCramfs(file):
+ super = CramfsSuper.unpack(file)
 
  if super.flags & 0x10000000:
   raise Exception('LZO compression not supported')
@@ -49,29 +49,33 @@ def readCramfs(data):
  if super.magic != cramfsSuperMagic or super.signature != cramfsSuperSignature:
   raise Exception('Wrong magic')
 
- if crc32(data[:32] + 4*'\x00' + data[36:]) != super.crc:
+ if crc32(FilePart(file, 0, 32), io.BytesIO(4 * '\x00'), FilePart(file, 36)) != super.crc:
   raise Exception('Wrong checksum')
 
  files = {}
- def readInode(data, off, path=''):
-  inode = CramfsInode.unpack(data, off)
+ def readInode(off, path=''):
+  inode = CramfsInode.unpack(file, off)
 
   size = inode.size_gid & 0xffffff
   gid = inode.size_gid >> 24
   nameLen = (inode.nameLen_offset & 0x3f) * 4
   offset = (inode.nameLen_offset >> 6) * 4
-  name = data[off+CramfsInode.size:off+CramfsInode.size+nameLen].rstrip('\0')
+  file.seek(off + CramfsInode.size)
+  name = file.read(nameLen).rstrip('\0')
 
   path += name
   isDir = S_ISDIR(inode.mode)
 
-  if S_ISREG(inode.mode) or S_ISLNK(inode.mode):
+  def extractTo(dstFile, offset=offset, size=size):
    nBlocks = (size - 1) / cramfsBlockSize + 1
-   blockPointers = [offset+nBlocks*4] + [parse32le(data[i:i+4]) for i in xrange(offset, offset+nBlocks*4, 4)]
-   blocks = [data[blockPointers[i]:blockPointers[i+1]] for i in xrange(len(blockPointers) - 1)]
-   contents = ''.join(decompress(block) for block in blocks)
-  else:
-   contents = None
+   file.seek(offset)
+   blockPointers = [offset + nBlocks * 4] + [parse32le(file.read(4)) for i in xrange(nBlocks)]
+   for i in xrange(len(blockPointers) - 1):
+    file.seek(blockPointers[i])
+    block = file.read(blockPointers[i+1] - blockPointers[i])
+    dstFile.write(decompress(block))
+   if dstFile.tell() != size:
+    raise Exception('Wrong resulting file size')
 
   files[path] = UnixFile(
    size = size if not isDir else 0,
@@ -79,15 +83,15 @@ def readCramfs(data):
    mode = inode.mode,
    uid = inode.uid,
    gid = gid,
-   contents = contents
+   extractTo = extractTo,
   )
 
   if isDir:
    end = offset + size
    while offset < end:
-    offset += readInode(data, offset, path + '/')
+    offset += readInode(offset, path + '/')
 
   return CramfsInode.size + nameLen
 
- readInode(data, CramfsSuper.size)
+ readInode(CramfsSuper.size)
  return files
