@@ -42,7 +42,7 @@ def readCramfs(file):
  if super.flags & 0x10000000:
   raise Exception('LZO compression not supported')
  elif super.flags & 0x20000000:
-  decompress = lambda data: lz77.inflateLz77(data)[1]
+  decompress = lambda data: lz77.inflateLz77(io.BytesIO(data))
  else:
   decompress = zlib.decompress
 

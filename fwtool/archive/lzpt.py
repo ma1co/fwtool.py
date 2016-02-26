@@ -1,5 +1,6 @@
 """A decoder for LZPT compressed image files"""
 
+import io
 from stat import *
 
 from . import *
@@ -36,13 +37,11 @@ def readLzpt(file):
  def extractTo(dstFile):
   for entry in tocEntries:
    file.seek(entry.offset)
-   block = file.read(entry.size)
+   block = io.BytesIO(file.read(entry.size))
 
    pos = dstFile.tell()
    while dstFile.tell() < pos + 2 ** header.blockSize:
-    l, decoded = lz77.inflateLz77(block)
-    dstFile.write(decoded)
-    block = block[l:]
+    dstFile.write(lz77.inflateLz77(block))
 
  return {'': UnixFile(
   size = -1,
