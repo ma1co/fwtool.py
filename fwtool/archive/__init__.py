@@ -2,14 +2,16 @@ from collections import namedtuple
 
 UnixFile = namedtuple('UnixFile', 'path, size, mtime, mode, uid, gid, extractTo')
 
-from . import axfs, cramfs, ext2, fat, lzpt, tar
+from . import axfs, cpio, cramfs, ext2, fat, gz, lzpt, tar
 
 def _findType(data):
  types = [
   (axfs.isAxfs, axfs.readAxfs),
+  (cpio.isCpio, cpio.readCpio),
   (cramfs.isCramfs, cramfs.readCramfs),
   (ext2.isExt2, ext2.readExt2),
   (fat.isFat, fat.readFat),
+  (gz.isGzip, gz.readGzip),
   (lzpt.isLzpt, lzpt.readLzpt),
   (tar.isTar, tar.readTar),
  ]
