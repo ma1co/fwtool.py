@@ -7,7 +7,7 @@ import shutil
 from stat import *
 
 from fwtool import archive, pe, zip
-from fwtool.sony import dat, fdat
+from fwtool.sony import dat, fdat, flash
 
 def mkdirs(path):
  try:
@@ -38,6 +38,18 @@ def writeFileTree(files, path):
   if S_ISDIR(file.mode) or S_ISREG(file.mode):
    setmtime(fn, file.mtime)
 
+def toUnixFile(path, file, mtime):
+ return archive.UnixFile(
+  path = path,
+  size = -1,
+  mtime = mtime,
+  mode = S_IFREG,
+  uid = 0,
+  gid = 0,
+  extractTo = lambda dstFile: shutil.copyfileobj(file, dstFile)
+ )
+
+
 def unpackCommand(file, outDir):
  """Extracts the firmware image from the updater executable, unpacks it and extracts it to the specified directory"""
  mkdirs(outDir)
@@ -62,37 +74,36 @@ def unpackCommand(file, outDir):
  fdat.decryptFdat(encryptedFdatFile, fdatFile)
  fdatContents = fdat.readFdat(fdatFile)
 
- def toUnixFile(path, file):
-  return archive.UnixFile(
-   path = path,
-   size = -1,
-   mtime = mtime,
-   mode = S_IFREG,
-   uid = 0,
-   gid = 0,
-   extractTo = lambda dstFile: shutil.copyfileobj(file, dstFile)
-  )
-
  print 'Extracting files'
  writeFileTree([
-  toUnixFile('/firmware.tar', fdatContents.tar),
-  toUnixFile('/updater.img', fdatContents.img),
+  toUnixFile('/firmware.tar', fdatContents.tar, mtime),
+  toUnixFile('/updater.img', fdatContents.img, mtime),
  ], outDir)
 
  print 'Done'
+
+
+def unpackDumpCommand(file, outDir):
+ mtime = os.stat(file.name).st_mtime
+ writeFileTree([toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(file)], outDir)
 
 
 def main():
  """Command line main"""
  parser = argparse.ArgumentParser()
  subparsers = parser.add_subparsers(dest='command', title='commands')
- install = subparsers.add_parser('unpack', description='Unpack a firmware file')
- install.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='the updater .exe file')
- install.add_argument('-o', dest='outDir', required=True, help='output directory')
+ unpack = subparsers.add_parser('unpack', description='Unpack a firmware file')
+ unpack.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='the updater .exe file')
+ unpack.add_argument('-o', dest='outDir', required=True, help='output directory')
+ unpackDump = subparsers.add_parser('unpack-dump', description='Unpack a dump of /dev/nflasha')
+ unpackDump.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='the dumped file')
+ unpackDump.add_argument('-o', dest='outDir', required=True, help='output directory')
 
  args = parser.parse_args()
  if args.command == 'unpack':
   unpackCommand(args.inFile, args.outDir)
+ elif args.command == 'unpack-dump':
+  unpackDumpCommand(args.inFile, args.outDir)
 
 
 if __name__ == '__main__':
