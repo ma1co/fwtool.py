@@ -19,7 +19,7 @@ def setmtime(path, time):
  os.utime(path, (time, time))
 
 def writeFileTree(files, path):
- """Writes a dict of UnixFiles to the disk, unpacking known archive files"""
+ """Writes a list of UnixFiles to the disk, unpacking known archive files"""
  for file in files:
   fn = path + file.path
   if S_ISDIR(file.mode):
@@ -50,42 +50,59 @@ def toUnixFile(path, file, mtime):
  )
 
 
-def unpackCommand(file, outDir):
- """Extracts the firmware image from the updater executable, unpacks it and extracts it to the specified directory"""
- mkdirs(outDir)
-
- print 'Reading installer binary'
- exeSectors = pe.readExe(file)
-
- print 'Decompressing installer data'
+def unpackInstaller(exeFile, datFile):
+ print 'Extracting installer binary'
+ exeSectors = pe.readExe(exeFile)
  zipFile = exeSectors['_winzip_']
  zippedFiles = dict((file.path, file) for file in zip.readZip(zipFile))
 
- print 'Reading .dat file'
- datFile = open(outDir + '/firmware.dat', 'w+b')
  zippedDatFile = zippedFiles[dat.findDat(zippedFiles.keys())]
  zippedDatFile.extractTo(datFile)
- mtime = zippedDatFile.mtime
- datChunks = dat.readDat(datFile)
 
- print 'Decoding firmware image'
- fdatFile = open(outDir + '/firmware.fdat', 'w+b')
+ return zippedDatFile.mtime
+
+
+def unpackDat(datFile, fdatFile):
+ print 'Decrypting firmware image'
+ datChunks = dat.readDat(datFile)
  encryptedFdatFile = datChunks['FDAT']
  fdat.decryptFdat(encryptedFdatFile, fdatFile)
- fdatContents = fdat.readFdat(fdatFile)
 
+
+def unpackFdat(fdatFile, outDir, mtime):
  print 'Extracting files'
+ fdatContents = fdat.readFdat(fdatFile)
  writeFileTree([
   toUnixFile('/firmware.tar', fdatContents.tar, mtime),
   toUnixFile('/updater.img', fdatContents.img, mtime),
  ], outDir)
 
- print 'Done'
+
+def unpackDump(dumpFile, outDir, mtime):
+ print 'Extracting partitions'
+ writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(dumpFile)), outDir)
 
 
-def unpackDumpCommand(file, outDir):
+def unpackCommand(file, outDir):
+ """Extracts the input file to the specified directory"""
+ mkdirs(outDir)
  mtime = os.stat(file.name).st_mtime
- writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(file)), outDir)
+
+ if pe.isExe(file):
+  with open(outDir + '/firmware.dat', 'w+b') as datFile, open(outDir + '/firmware.fdat', 'w+b') as fdatFile:
+   mtime = unpackInstaller(file, datFile)
+   unpackDat(datFile, fdatFile)
+   unpackFdat(fdatFile, outDir, mtime)
+ elif dat.isDat(file):
+  with open(outDir + '/firmware.fdat', 'w+b') as fdatFile:
+   unpackDat(file, fdatFile)
+   unpackFdat(fdatFile, outDir, mtime)
+ elif fdat.isFdat(file):
+  unpackFdat(file, outDir, mtime)
+ elif flash.isPartitionTable(file):
+  unpackDump(file, outDir, mtime)
+ else:
+  raise Exception('Unknown file type!')
 
 
 def main():
@@ -93,17 +110,12 @@ def main():
  parser = argparse.ArgumentParser()
  subparsers = parser.add_subparsers(dest='command', title='commands')
  unpack = subparsers.add_parser('unpack', description='Unpack a firmware file')
- unpack.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='the updater .exe file')
+ unpack.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='input file')
  unpack.add_argument('-o', dest='outDir', required=True, help='output directory')
- unpackDump = subparsers.add_parser('unpack-dump', description='Unpack a dump of /dev/nflasha')
- unpackDump.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='the dumped file')
- unpackDump.add_argument('-o', dest='outDir', required=True, help='output directory')
 
  args = parser.parse_args()
  if args.command == 'unpack':
   unpackCommand(args.inFile, args.outDir)
- elif args.command == 'unpack-dump':
-  unpackDumpCommand(args.inFile, args.outDir)
 
 
 if __name__ == '__main__':
