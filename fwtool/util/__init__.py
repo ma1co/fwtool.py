@@ -54,7 +54,7 @@ class Struct:
 
  def unpack(self, data, offset = 0):
   if isinstance(data, basestring):
-   data = data[offset:]
+   data = data[offset:offset+self.size]
   else:
    data.seek(offset)
    data = data.read(self.size)

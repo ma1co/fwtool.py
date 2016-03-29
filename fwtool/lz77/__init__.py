@@ -1,4 +1,5 @@
 """LZ77 decompressor"""
+# Kernel source: lib/lz77/lz77_inflate.c
 
 def inflateLz77(file):
  """Decodes LZ77 compressed data"""

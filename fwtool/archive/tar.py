@@ -34,14 +34,14 @@ def isTar(file):
 def readTar(file):
  """Unpacks a .tar file and returns a the contained files"""
  file.seek(0)
- with tarfile.TarFile(fileobj=file) as tar:
-  for member in tar:
-   yield UnixFile(
-    path = '/' + member.name,
-    size = member.size,
-    mtime = member.mtime,
-    mode = _convertFileType(member.type) | member.mode,
-    uid = member.uid,
-    gid = member.gid,
-    extractTo = lambda dstFile, srcFile=tar.extractfile(member): shutil.copyfileobj(srcFile, dstFile),
-   )
+ tar = tarfile.TarFile(fileobj=file)
+ for member in tar:
+  yield UnixFile(
+   path = '/' + member.name,
+   size = member.size,
+   mtime = member.mtime,
+   mode = _convertFileType(member.type) | member.mode,
+   uid = member.uid,
+   gid = member.gid,
+   extractTo = lambda dstFile, srcFile=tar.extractfile(member): shutil.copyfileobj(srcFile, dstFile),
+  )
