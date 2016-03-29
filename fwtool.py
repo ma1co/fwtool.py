@@ -85,7 +85,7 @@ def unpackCommand(file, outDir):
 
 def unpackDumpCommand(file, outDir):
  mtime = os.stat(file.name).st_mtime
- writeFileTree([toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(file)], outDir)
+ writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(file)), outDir)
 
 
 def main():
