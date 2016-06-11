@@ -7,7 +7,7 @@ import shutil
 from stat import *
 
 from fwtool import archive, pe, zip
-from fwtool.sony import dat, fdat, flash
+from fwtool.sony import backup, dat, fdat, flash
 
 def mkdirs(path):
  try:
@@ -105,6 +105,25 @@ def unpackCommand(file, outDir):
   raise Exception('Unknown file type!')
 
 
+def printHexDump(data, n=16, indent=0):
+ for i in xrange(0, len(data), n):
+  line = data[i:i+n]
+  hex = ' '.join('%02x' % ord(c) for c in line)
+  text = ''.join(c if len(repr(c)) == 3 and c != ' ' else '.' for c in line)
+  print '%*s%-*s %s' % (indent, '', n*3, hex, text)
+
+
+def printBackupCommand(file):
+ """Prints all properties in a Backup.bin file"""
+ for property in backup.readBackup(file):
+  print 'id=0x%08x, size=0x%04x, attr=0x%02x:' % (property.id, len(property.data), property.attr)
+  printHexDump(property.data, indent=2)
+  if property.resetData and property.resetData != property.data:
+   print 'reset data:'
+   printHexDump(property.resetData, indent=2)
+  print ''
+
+
 def main():
  """Command line main"""
  parser = argparse.ArgumentParser()
@@ -112,10 +131,14 @@ def main():
  unpack = subparsers.add_parser('unpack', description='Unpack a firmware file')
  unpack.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='input file')
  unpack.add_argument('-o', dest='outDir', required=True, help='output directory')
+ unpack = subparsers.add_parser('print_backup', description='Print the contents of a Backup.bin file')
+ unpack.add_argument('-f', dest='backupFile', type=argparse.FileType('rb'), required=True, help='backup file')
 
  args = parser.parse_args()
  if args.command == 'unpack':
   unpackCommand(args.inFile, args.outDir)
+ elif args.command == 'print_backup':
+  printBackupCommand(args.backupFile)
 
 
 if __name__ == '__main__':
