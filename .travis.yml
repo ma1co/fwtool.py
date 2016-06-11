@@ -1,0 +1,28 @@
+# Run os x builds on travis-ci.org
+
+language: objective-c
+
+install:
+ # Install python
+ - brew install --framework python
+ - brew link --overwrite python
+
+ # Install dependencies
+ - pip install -r requirements.txt
+
+ # Log versions
+ - python --version
+ - pip list
+
+script:
+ # Run pyinstaller
+ - pyinstaller fwtool.spec
+
+deploy:
+ # Deploy tagged releases
+ provider: releases
+ api_key: {secure: dUGeNieu2zQrNqpf3Vv82eLdURcLERIF8GznV8q5SFyRCDlJxJ3f8ttiULGIOX63p+TFs2B9AifhcUsej+EQQOrd1ugnVPCeJb9OpXrdfRa94Tbio/OQNtaeGFMlcFQ88JjL1M6du1XpT8m1kudJtrsSVUDDuNsqL+d0iILGG+h35ON0iNLixjqIUh9VTkYFv2Ndh2vGFnLS9sPYfpjgqry7Yxh2vNVaBqMTknNUJv1bHIf22VLegoAsV/6+ruAErDEJ3aiquQHMPioflDy0t+wxJAjYilwqEt5mN9SxzqrMFPy6NoyUF1Xs9mxrjQWA5uJzX/z3ESu4mvQwCiuPQJ8JFbG1+g2S1Ne1ynmI5VcUQPgJiGg8XMztuT2qTb+AKgdLl+4W1KPVlb2tqEDw2mYHsr61lZ4e9RzxTDtrSvLFvMS9qqx3BljQKqJzgNnHlmN0xpFts+3f2WjtvnXoigtmCGOo55+b9Dh7fA50DAuxkncHaxCI6syGO/2j1BI+jWdDcC9tDkqRE/QtJEWIIlNJIs0pw/K0sYklhti0uQWhoRKZAmF5C9n8j/KG/DPL3YaBIO1i+4G0MtVv0Xi7oKOq6h8xO2ZFdGSXb/+3RdKwTzco4iDJmZhIatzJki4ZrFL/8//a3MUiCaZoNjA/uuoy/YmR2sKA1XrfZKIzJMg=}
+ file_glob: true
+ file: dist/*
+ skip_cleanup: true
+ on: {tags: true}
