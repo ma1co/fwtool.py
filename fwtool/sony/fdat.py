@@ -1,7 +1,8 @@
 """Decrypter & parser for FDAT firmware images"""
 
 from collections import namedtuple
-import hashlib
+from Crypto.Hash import SHA
+from Crypto.Util.strxor import strxor
 import io
 import struct
 
@@ -51,17 +52,12 @@ class Gen1Decrypter(Decrypter):
   self.digest = constants.shaKey1
   Decrypter.__init__(self, file, 1000)
 
- def _fastXor(self, xs, ys):
-  """Fast xor between two strings. len(xs) must be a multiple of 8, ys must be at least as long as xs"""
-  fmt = str(len(xs) / 8) + 'Q'
-  return struct.pack(fmt, *[x ^ y for x, y in zip(struct.unpack(fmt, xs), struct.unpack(fmt, ys[:len(xs)]))])
-
  def decrypt(self, data):
   xorKey = io.BytesIO()
   while xorKey.tell() < len(data):
-   self.digest = hashlib.sha1(self.digest + constants.shaKey2).digest()
+   self.digest = SHA.new(self.digest + constants.shaKey2).digest()
    xorKey.write(self.digest)
-  return self._fastXor(data, xorKey.getvalue())
+  return strxor(data, xorKey.getvalue())
 
 class Gen2Decrypter(Decrypter):
  """Decrypts a block from a 2nd gen firmware image using AES"""
