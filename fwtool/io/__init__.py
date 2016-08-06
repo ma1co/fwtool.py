@@ -30,3 +30,36 @@ class FilePart:
   data = self.file.read(min(size, self.size - self.pos))
   self.pos += len(data)
   return data
+
+
+class ChunkedFile:
+ def __init__(self, generateChunks, size=-1):
+  self._generateChunks = generateChunks
+  self._size = size
+  self.reset()
+
+ def reset(self):
+  self._chunks = None
+  self._pos = 0
+  self._buffer = ''
+
+ def read(self, n=-1):
+  if self._chunks == None:
+   self._chunks = self._generateChunks()
+
+  try:
+   while n < 0 or len(self._buffer) < n:
+    self._buffer += next(self._chunks)
+  except StopIteration:
+   if self._size >= 0 and self._pos + len(self._buffer) < self._size:
+    raise Exception('Not enough bytes returned')
+  if self._size >= 0 and self._pos + len(self._buffer) > self._size:
+   raise Exception('Too many bytes returned')
+
+  contents = self._buffer if n < 0 else self._buffer[:n]
+  self._pos += len(contents)
+  self._buffer = self._buffer[len(contents):]
+  return contents
+
+ def tell(self):
+  return self._pos

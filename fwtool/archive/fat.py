@@ -5,6 +5,7 @@ from stat import *
 import time
 
 from . import *
+from ..io import *
 from ..util import *
 
 FatHeader = Struct('FatHeader', [
@@ -99,13 +100,16 @@ def readFat(file):
      if name != '.' and name != '..':
       isDir = entry.attr & 0x10
 
-      def extractTo(dstFile, cluster=entry.cluster, size=entry.size, isDir=isDir):
-       while cluster != 0 and cluster != endMarker and (dstFile.tell() < size or isDir):
+      def generateChunks(cluster=entry.cluster, size=entry.size, isDir=isDir):
+       read = 0
+       while cluster != 0 and cluster != endMarker and (read < size or isDir):
         file.seek(dataOffset + (cluster - 2) * header.sectorsPerCluster * header.bytesPerSector)
         block = file.read(header.sectorsPerCluster * header.bytesPerSector)
-        dstFile.write(block if isDir else block[:size-dstFile.tell()])
+        yield block if isDir else block[:size-read]
+        read += len(block)
         cluster = clusters[cluster]
 
+      contents = ChunkedFile(generateChunks, entry.size if not isDir else -1)
       yield UnixFile(
        path = path + '/' + name,
        size = entry.size,
@@ -113,13 +117,11 @@ def readFat(file):
        mode = S_IFDIR if isDir else S_IFREG,
        uid = 0,
        gid = 0,
-       extractTo = extractTo,
+       contents = contents if not isDir else None,
       )
 
       if isDir:
-       contents = io.BytesIO()
-       extractTo(contents)
-       for f in readDir(contents.getvalue(), path + '/' + name):
+       for f in readDir(contents.read(), path + '/' + name):
         yield f
 
    offset += FatDirEntry.size

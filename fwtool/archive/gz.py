@@ -1,7 +1,6 @@
 """A simple parser for gzip archives"""
 
 import gzip
-import shutil
 from stat import *
 
 from . import *
@@ -29,5 +28,5 @@ def readGzip(file):
   mode = S_IFREG,
   uid = 0,
   gid = 0,
-  extractTo = lambda dstFile: shutil.copyfileobj(gz, dstFile),
+  contents = gz,
  )

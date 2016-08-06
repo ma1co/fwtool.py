@@ -27,7 +27,7 @@ def writeFileTree(files, path):
   elif S_ISREG(file.mode):
    mkdirs(os.path.dirname(fn))
    with open(fn, 'w+b') as dstFile:
-    file.extractTo(dstFile)
+    shutil.copyfileobj(file.contents, dstFile)
     if archive.isArchive(dstFile):
      print 'Unpacking %s' % fn
      writeFileTree(archive.readArchive(dstFile), fn + '_unpacked')
@@ -46,7 +46,7 @@ def toUnixFile(path, file, mtime):
   mode = S_IFREG,
   uid = 0,
   gid = 0,
-  extractTo = lambda dstFile: shutil.copyfileobj(file, dstFile)
+  contents = file,
  )
 
 
@@ -57,7 +57,7 @@ def unpackInstaller(exeFile, datFile):
  zippedFiles = dict((file.path, file) for file in zip.readZip(zipFile))
 
  zippedDatFile = zippedFiles[dat.findDat(zippedFiles.keys())]
- zippedDatFile.extractTo(datFile)
+ shutil.copyfileobj(zippedDatFile.contents, datFile)
 
  return zippedDatFile.mtime
 

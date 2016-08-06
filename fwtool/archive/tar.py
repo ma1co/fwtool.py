@@ -1,6 +1,5 @@
 """A simple parser for tar archives"""
 
-import shutil
 from stat import *
 import tarfile
 
@@ -43,5 +42,5 @@ def readTar(file):
    mode = _convertFileType(member.type) | member.mode,
    uid = member.uid,
    gid = member.gid,
-   extractTo = lambda dstFile, srcFile=tar.extractfile(member): shutil.copyfileobj(srcFile, dstFile),
+   contents = tar.extractfile(member),
   )

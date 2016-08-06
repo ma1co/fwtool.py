@@ -1,6 +1,5 @@
 """A simple parser for "new ascii format" cpio archives"""
 
-import shutil
 import os
 
 from . import *
@@ -55,5 +54,5 @@ def readCpio(file):
    mode = header.mode,
    uid = header.uid,
    gid = header.gid,
-   extractTo = lambda dstFile, srcFile=FilePart(file, dataStart, header.size): shutil.copyfileobj(srcFile, dstFile),
+   contents = FilePart(file, dataStart, header.size),
   )

@@ -5,6 +5,7 @@ from stat import *
 
 from . import *
 from .. import lz77
+from ..io import *
 from ..util import *
 
 LzptHeader = Struct('LzptHeader', [
@@ -34,14 +35,16 @@ def readLzpt(file):
 
  tocEntries = [LzptTocEntry.unpack(file, header.tocOffset + offset) for offset in xrange(0, header.tocSize, LzptTocEntry.size)]
 
- def extractTo(dstFile):
+ def generateChunks():
   for entry in tocEntries:
    file.seek(entry.offset)
    block = io.BytesIO(file.read(entry.size))
 
-   pos = dstFile.tell()
-   while dstFile.tell() < pos + 2 ** header.blockSize:
-    dstFile.write(lz77.inflateLz77(block))
+   read = 0
+   while read < 2 ** header.blockSize:
+    contents = lz77.inflateLz77(block)
+    yield contents
+    read += len(contents)
 
  yield UnixFile(
   path = '',
@@ -50,5 +53,5 @@ def readLzpt(file):
   mode = S_IFREG,
   uid = 0,
   gid = 0,
-  extractTo = extractTo,
+  contents = ChunkedFile(generateChunks),
  )

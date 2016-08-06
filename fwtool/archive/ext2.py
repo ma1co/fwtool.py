@@ -1,9 +1,9 @@
 """A parser for ext2 file system images"""
 
-import io
 from stat import *
 
 from . import *
+from ..io import *
 from ..util import *
 
 Ext2Header = Struct('Ext2Header', [
@@ -68,7 +68,12 @@ def readExt2(file):
  def readInode(i, path = ''):
   inode = Ext2Inode.unpack(file, inodeTables[(i-1)/header.inodesPerGroup] * blockSize + ((i-1)%header.inodesPerGroup) * Ext2Inode.size)
 
-  def extractTo(dstFile, contents=inode.blocks, size=inode.size):
+  def generateChunks(contents=inode.blocks, size=inode.size, mode=inode.mode):
+   if S_ISLNK(mode) and size <= len(contents):
+    # Fast symlinks
+    yield contents[:size]
+    return
+
    ptrs = []
    for i in xrange(15, 11, -1):
     # resolve indirect pointers
@@ -79,14 +84,17 @@ def readExt2(file):
       contents += file.read(blockSize)
     ptrs = [parse32le(contents[j:j+4]) for j in xrange(0, len(contents), 4)]
 
+   read = 0
    for ptr in ptrs:
-    if ptr != 0 and dstFile.tell() < size:
+    if ptr != 0 and read < size:
      file.seek(ptr * blockSize)
      block = file.read(blockSize)
-     dstFile.write(block[:size-dstFile.tell()])
+     yield block[:size-read]
+     read += len(block)
 
   isDir = S_ISDIR(inode.mode)
 
+  contents = ChunkedFile(generateChunks, inode.size)
   yield UnixFile(
    path = path,
    size = inode.size if not isDir else 0,
@@ -94,21 +102,17 @@ def readExt2(file):
    mode = inode.mode,
    uid = inode.uid,
    gid = inode.gid,
-   extractTo = extractTo,
+   contents = contents if S_ISREG(inode.mode) or S_ISLNK(inode.mode) else None,
   )
 
   if isDir:
-   contents = io.BytesIO()
-   extractTo(contents)
-   contents = contents.getvalue()
-   offset = 0
-   while offset < len(contents):
-    entry = Ext2DirEntry.unpack(contents, offset)
-    name = contents[offset+Ext2DirEntry.size:offset+Ext2DirEntry.size+entry.nameSize]
+   while contents.tell() < inode.size:
+    entry = Ext2DirEntry.unpack(contents.read(Ext2DirEntry.size))
+    name = contents.read(entry.nameSize)
     if name != '.' and name != '..':
      for f in readInode(entry.inode, path + '/' + name):
       yield f
-    offset += entry.size
+    contents.read(entry.size - Ext2DirEntry.size - entry.nameSize)
 
  for f in readInode(2):
   yield f

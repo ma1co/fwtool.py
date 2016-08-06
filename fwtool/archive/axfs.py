@@ -4,7 +4,7 @@ from stat import *
 import zlib
 
 from . import *
-from ..io import FilePart
+from ..io import *
 from ..util import *
 
 AxfsHeader = Struct('AxfsHeader', [
@@ -90,24 +90,25 @@ def readAxfs(file):
   path += name if id != 0 else ''
   isDir = S_ISDIR(mode)
 
-  def extractTo(dstFile, arrayIndex=arrayIndex, numEntries=numEntries, size=size):
+  def generateChunks(arrayIndex=arrayIndex, numEntries=numEntries, size=size):
+   read = 0
    for i in xrange(numEntries):
     nodeType = tables['nodeType'][arrayIndex + i]
     nodeIndex = tables['nodeIndex'][arrayIndex + i]
     if nodeType == 0:
      regions['xip'].seek(nodeIndex << 12)
-     dstFile.write(regions['xip'].read(4096))
+     contents = regions['xip'].read(4096)
     elif nodeType == 1:
      cnodeIndex = tables['cnodeIndex'][nodeIndex]
      regions['compressed'].seek(tables['cblockOffset'][cnodeIndex])
-     dstFile.write(zlib.decompress(regions['compressed'].read(tables['cblockOffset'][cnodeIndex+1] - tables['cblockOffset'][cnodeIndex])))
+     contents = zlib.decompress(regions['compressed'].read(tables['cblockOffset'][cnodeIndex+1] - tables['cblockOffset'][cnodeIndex]))
     elif nodeType == 2:
      regions['byteAligned'].seek(tables['banodeOffset'][nodeIndex])
-     dstFile.write(regions['byteAligned'].read(size - dstFile.tell()))
+     contents = regions['byteAligned'].read(size - read)
     else:
      raise Exception('Unknown type')
-   if dstFile.tell() != size:
-    raise Exception('Wrong resulting file size')
+    yield contents
+    read += len(contents)
 
   yield UnixFile(
    path = path,
@@ -116,7 +117,7 @@ def readAxfs(file):
    mode = mode,
    uid = uid,
    gid = gid,
-   extractTo = extractTo,
+   contents = ChunkedFile(generateChunks, size) if S_ISREG(mode) or S_ISLNK(mode) else None,
   )
 
   if isDir:

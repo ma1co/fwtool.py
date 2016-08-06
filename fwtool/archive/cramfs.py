@@ -5,7 +5,7 @@ from stat import *
 import zlib
 
 from . import *
-from ..io import FilePart
+from ..io import *
 from .. import lz77
 from ..util import *
 
@@ -66,16 +66,14 @@ def readCramfs(file):
   path += name
   isDir = S_ISDIR(inode.mode)
 
-  def extractTo(dstFile, offset=offset, size=size):
+  def generateChunks(offset=offset, size=size):
    nBlocks = (size - 1) / cramfsBlockSize + 1
    file.seek(offset)
    blockPointers = [offset + nBlocks * 4] + [parse32le(file.read(4)) for i in xrange(nBlocks)]
    for i in xrange(len(blockPointers) - 1):
     file.seek(blockPointers[i])
     block = file.read(blockPointers[i+1] - blockPointers[i])
-    dstFile.write(decompress(block))
-   if dstFile.tell() != size:
-    raise Exception('Wrong resulting file size')
+    yield decompress(block)
 
   yield UnixFile(
    path = path,
@@ -84,7 +82,7 @@ def readCramfs(file):
    mode = inode.mode,
    uid = inode.uid,
    gid = gid,
-   extractTo = extractTo,
+   contents = ChunkedFile(generateChunks, size) if S_ISREG(inode.mode) or S_ISLNK(inode.mode) else None,
   )
 
   if isDir:
