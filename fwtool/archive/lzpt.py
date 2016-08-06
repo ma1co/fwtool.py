@@ -1,4 +1,6 @@
 """A decoder for LZPT compressed image files"""
+# Kernel source: arch/arm/include/asm/mach/warmboot.h
+# Kernel source: arch/arm/mach-cxd90014/include/mach/cmpr.h
 
 import io
 from stat import *
@@ -8,14 +10,17 @@ from .. import lz77
 from ..io import *
 from ..util import *
 
+# struct wbi_lzp_hdr
 LzptHeader = Struct('LzptHeader', [
  ('magic', Struct.STR % 4),
  ('blockSize', Struct.INT32),
  ('tocOffset', Struct.INT32),
  ('tocSize', Struct.INT32),
 ])
+# CMPR_LZPART_MAGIC
 lzptHeaderMagic = 'TPZL'
 
+# struct wbi_lzp_entry
 LzptTocEntry = Struct('LzptTocEntry', [
  ('offset', Struct.INT32),
  ('size', Struct.INT32),
