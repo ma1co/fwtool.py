@@ -5,6 +5,7 @@ import argparse
 import os
 import shutil
 from stat import *
+import yaml
 
 from fwtool import archive, pe, zip
 from fwtool.sony import backup, dat, fdat, flash
@@ -49,6 +50,12 @@ def toUnixFile(path, file, mtime):
   contents = file,
  )
 
+def writeYaml(yamlData, file):
+ yaml.add_representer(tuple, lambda dumper, data: dumper.represent_list(data))
+ yaml.add_representer(dict, lambda dumper, data: dumper.represent_mapping(dumper.DEFAULT_MAPPING_TAG, data, flow_style=False))
+ yaml.add_representer(int, lambda dumper, data: dumper.represent_int(hex(data) if data >= 10 else data))
+ yaml.dump(yamlData, file)
+
 
 def unpackInstaller(exeFile, datFile):
  print 'Extracting installer binary'
@@ -64,18 +71,33 @@ def unpackInstaller(exeFile, datFile):
 
 def unpackDat(datFile, fdatFile):
  print 'Decrypting firmware image'
- datChunks = dat.readDat(datFile)
- encryptedFdatFile = datChunks['FDAT']
- fdat.decryptFdat(encryptedFdatFile, fdatFile)
+ datContents = dat.readDat(datFile)
+ crypterName, data = fdat.decryptFdat(datContents.firmwareData)
+ shutil.copyfileobj(data, fdatFile)
+
+ return {
+  'normalUsbDescriptors': datContents.normalUsbDescriptors,
+  'updaterUsbDescriptors': datContents.updaterUsbDescriptors,
+  'isLens': datContents.isLens,
+  'crypterName': crypterName,
+ }
 
 
 def unpackFdat(fdatFile, outDir, mtime):
  print 'Extracting files'
  fdatContents = fdat.readFdat(fdatFile)
+
  writeFileTree([
-  toUnixFile('/firmware.tar', fdatContents.tar, mtime),
-  toUnixFile('/updater.img', fdatContents.img, mtime),
+  toUnixFile('/firmware.tar', fdatContents.firmware, mtime),
+  toUnixFile('/updater.img', fdatContents.fs, mtime),
  ], outDir)
+
+ return {
+  'model': fdatContents.model,
+  'region': fdatContents.region,
+  'version': fdatContents.version,
+  'isAccessory': fdatContents.isAccessory,
+ }
 
 
 def unpackDump(dumpFile, outDir, mtime):
@@ -88,21 +110,27 @@ def unpackCommand(file, outDir):
  mkdirs(outDir)
  mtime = os.stat(file.name).st_mtime
 
+ datConf = None
+ fdatConf = None
+
  if pe.isExe(file):
   with open(outDir + '/firmware.dat', 'w+b') as datFile, open(outDir + '/firmware.fdat', 'w+b') as fdatFile:
    mtime = unpackInstaller(file, datFile)
-   unpackDat(datFile, fdatFile)
-   unpackFdat(fdatFile, outDir, mtime)
+   datConf = unpackDat(datFile, fdatFile)
+   fdatConf = unpackFdat(fdatFile, outDir, mtime)
  elif dat.isDat(file):
   with open(outDir + '/firmware.fdat', 'w+b') as fdatFile:
-   unpackDat(file, fdatFile)
-   unpackFdat(fdatFile, outDir, mtime)
+   datConf = unpackDat(file, fdatFile)
+   fdatConf = unpackFdat(fdatFile, outDir, mtime)
  elif fdat.isFdat(file):
-  unpackFdat(file, outDir, mtime)
+  fdatConf = unpackFdat(file, outDir, mtime)
  elif flash.isPartitionTable(file):
   unpackDump(file, outDir, mtime)
  else:
   raise Exception('Unknown file type!')
+
+ with open(outDir + '/config.yaml', 'wb') as yamlFile:
+  writeYaml({'dat': datConf, 'fdat': fdatConf}, yamlFile)
 
 
 def printHexDump(data, n=16, indent=0):

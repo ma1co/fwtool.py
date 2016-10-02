@@ -1,3 +1,4 @@
 pycrypto
 # use pyinstaller 3.1.1 for now, 3.2 has some bugs
 pyinstaller==3.1.1
+pyyaml

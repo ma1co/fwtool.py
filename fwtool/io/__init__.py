@@ -36,12 +36,7 @@ class ChunkedFile:
  def __init__(self, generateChunks, size=-1):
   self._generateChunks = generateChunks
   self._size = size
-  self.reset()
-
- def reset(self):
-  self._chunks = None
-  self._pos = 0
-  self._buffer = ''
+  self.seek(0)
 
  def read(self, n=-1):
   if self._chunks == None:
@@ -60,6 +55,18 @@ class ChunkedFile:
   self._pos += len(contents)
   self._buffer = self._buffer[len(contents):]
   return contents
+
+ def seek(self, pos, whence=os.SEEK_SET):
+  if whence == os.SEEK_SET and pos == 0:
+   self._chunks = None
+   self._pos = 0
+   self._buffer = ''
+  elif whence == os.SEEK_END and pos == 0 and self._size >= 0:
+   self._chunks = iter(())
+   self._pos = self._size
+   self._buffer = ''
+  else:
+   raise Exception('Seeking is not supported')
 
  def tell(self):
   return self._pos
