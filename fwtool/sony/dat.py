@@ -1,7 +1,9 @@
 """Parser for the .dat file contained in the updater executable"""
 
 from collections import namedtuple
+import io
 import re
+import shutil
 
 import constants
 from ..io import FilePart
@@ -81,6 +83,25 @@ def readChunks(file):
 
  return chunks, offset
 
+def writeChunks(chunks, file):
+ file.seek(0)
+ file.write(DatHeader.pack(magic=datHeaderMagic))
+ offset = DatHeader.size
+
+ for type, contents in chunks:
+  file.seek(offset)
+  file.write('\x00' * DatChunkHeader.size)
+  contents.seek(0)
+  shutil.copyfileobj(contents, file)
+  file.seek(offset)
+  file.write(DatChunkHeader.pack(type=type, size=contents.tell()))
+  offset += DatChunkHeader.size + contents.tell()
+
+ return offset
+
+def _calcCrc(file, fileSize):
+ return crc32(FilePart(file, 0, fileSize - DatChunkHeader.size - DendChunk.size))
+
 def readDat(file):
  """Reads a .dat file"""
  chunkList, fileSize = readChunks(file)
@@ -100,7 +121,7 @@ def readDat(file):
   descriptors[descriptor.mode].append((descriptor.vid, descriptor.pid))
 
  dend = DendChunk.unpack(chunks[dendChunkType])
- if crc32(FilePart(file, 0, fileSize - DatChunkHeader.size - DendChunk.size)) != dend.crc:
+ if _calcCrc(file, fileSize) != dend.crc:
   raise Exception('Wrong checksum')
 
  return DatFile(
@@ -109,3 +130,23 @@ def readDat(file):
   isLens = bool(datv.isLens),
   firmwareData = chunks[fdatChunkType],
  )
+
+def writeDat(dat, file):
+ descriptors = [(descriptorTypeNormal, dat.normalUsbDescriptors), (descriptorTypeUpdater, dat.updaterUsbDescriptors)]
+ udidChunk = io.BytesIO()
+ udidChunk.write(UdidChunkHeader.pack(descriptorCount=sum(len(descs) for type, descs in descriptors)))
+ for type, descs in descriptors:
+  for vid, pid in descs:
+   udidChunk.write(UdidChunkDescriptor.pack(vid=vid, pid=pid, mode=type))
+
+ fileSize = writeChunks([
+  (datvChunkType, io.BytesIO(DatvChunk.pack(dataVersion=datvDataVersion, isLens=dat.isLens))),
+  (provChunkType, io.BytesIO(ProvChunk.pack(protocolVersion=provProtocolVersion))),
+  (udidChunkType, udidChunk),
+  (fdatChunkType, dat.firmwareData),
+  (dendChunkType, io.BytesIO('\x00' * DendChunk.size)),
+ ], file)
+
+ crc = _calcCrc(file, fileSize)
+ file.seek(fileSize - DendChunk.size)
+ file.write(DendChunk.pack(crc=crc))

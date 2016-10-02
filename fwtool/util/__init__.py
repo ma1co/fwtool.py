@@ -8,26 +8,47 @@ from collections import namedtuple
 def parse64be(data):
  return struct.unpack('>Q', data)[0]
 
+def dump64be(value):
+ return struct.pack('>Q', value)
+
 def parse64le(data):
  return struct.unpack('<Q', data)[0]
+
+def dump64le(value):
+ return struct.pack('<Q', value)
 
 def parse32be(data):
  return struct.unpack('>I', data)[0]
 
+def dump32be(value):
+ return struct.pack('>I', value)
+
 def parse32le(data):
  return struct.unpack('<I', data)[0]
+
+def dump32le(value):
+ return struct.pack('<I', value)
 
 def parse16be(data):
  return struct.unpack('>H', data)[0]
 
+def dump16be(value):
+ return struct.pack('>H', value)
+
 def parse16le(data):
  return struct.unpack('<H', data)[0]
+
+def dump16le(value):
+ return struct.pack('<H', value)
 
 def parse16leArr(data):
  return struct.unpack('<%sH' % str(len(data) / 2), data)
 
 def parse8(data):
  return ord(data)
+
+def dump8(value):
+ return chr(value)
 
 def crc32(*files):
  crc = 0
@@ -61,3 +82,6 @@ class Struct:
   if len(data) < self.size:
    return None
   return self.tuple._make(struct.unpack_from(self.format, data))
+
+ def pack(self, **kwargs):
+  return struct.pack(self.format, *self.tuple(**kwargs))

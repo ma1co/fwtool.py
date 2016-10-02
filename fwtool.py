@@ -133,6 +133,37 @@ def unpackCommand(file, outDir):
   writeYaml({'dat': datConf, 'fdat': fdatConf}, yamlFile)
 
 
+def packCommand(firmwareFile, fsFile, configFile, outDir):
+ mkdirs(outDir)
+
+ config = yaml.safe_load(configFile)
+ datConf = config['dat']
+ fdatConf = config['fdat']
+
+ if fdatConf:
+  print 'Creating firmware image'
+  with open(outDir + '/firmware_packed.fdat', 'w+b') as fdatFile:
+   fdat.writeFdat(fdat.FdatFile(
+    model = fdatConf['model'],
+    region = fdatConf['region'],
+    version = fdatConf['version'],
+    isAccessory = fdatConf['isAccessory'],
+    firmware = firmwareFile,
+    fs = fsFile,
+   ), fdatFile)
+
+   if datConf:
+    print 'Encrypting firmware image'
+    encrypted = fdat.encryptFdat(fdatFile, datConf['crypterName'])
+    with open(outDir + '/firmware_packed.dat', 'w+b') as datFile:
+     dat.writeDat(dat.DatFile(
+      normalUsbDescriptors = datConf['normalUsbDescriptors'],
+      updaterUsbDescriptors = datConf['updaterUsbDescriptors'],
+      isLens = datConf['isLens'],
+      firmwareData = encrypted,
+     ), datFile)
+
+
 def printHexDump(data, n=16, indent=0):
  for i in xrange(0, len(data), n):
   line = data[i:i+n]
@@ -159,12 +190,19 @@ def main():
  unpack = subparsers.add_parser('unpack', description='Unpack a firmware file')
  unpack.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='input file')
  unpack.add_argument('-o', dest='outDir', required=True, help='output directory')
- unpack = subparsers.add_parser('print_backup', description='Print the contents of a Backup.bin file')
- unpack.add_argument('-f', dest='backupFile', type=argparse.FileType('rb'), required=True, help='backup file')
+ pack = subparsers.add_parser('pack', description='Pack a firmware file')
+ pack.add_argument('-c', dest='configFile', type=argparse.FileType('rb'), required=True, help='configuration file (config.yaml)')
+ pack.add_argument('-u', dest='updaterFile', type=argparse.FileType('rb'), required=True, help='updater file (updater.img)')
+ pack.add_argument('-f', dest='firmwareFile', type=argparse.FileType('rb'), required=True, help='firmware file (firmware.tar)')
+ pack.add_argument('-o', dest='outDir', required=True, help='output directory')
+ printBackup = subparsers.add_parser('print_backup', description='Print the contents of a Backup.bin file')
+ printBackup.add_argument('-f', dest='backupFile', type=argparse.FileType('rb'), required=True, help='backup file')
 
  args = parser.parse_args()
  if args.command == 'unpack':
   unpackCommand(args.inFile, args.outDir)
+ elif args.command == 'pack':
+  packCommand(args.firmwareFile, args.updaterFile, args.configFile, args.outDir)
  elif args.command == 'print_backup':
   printBackupCommand(args.backupFile)
 

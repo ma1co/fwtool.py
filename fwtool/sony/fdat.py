@@ -5,6 +5,8 @@ from Crypto.Cipher import AES
 from Crypto.Hash import SHA
 from Crypto.Util.strxor import strxor
 import io
+import re
+import shutil
 import struct
 
 import constants
@@ -66,13 +68,20 @@ class BlockCryptException(Exception):
 
 
 class Crypter(object):
- def __init__(self, decryptBlockSize):
+ def __init__(self, decryptBlockSize, encryptBlockSize):
   self._decryptBlockSize = decryptBlockSize
+  self._encryptBlockSize = encryptBlockSize
 
  def unpackBlock(self, data):
   return data
 
+ def packBlock(self, data):
+  return data
+
  def decryptBlock(self, data):
+  return data
+
+ def encryptBlock(self, data):
   return data
 
  def _crypt(self, file, blockSize, cryptFunc):
@@ -91,10 +100,13 @@ class Crypter(object):
  def decrypt(self, file):
   return self._crypt(file, self._decryptBlockSize, lambda data: self.unpackBlock(self.decryptBlock(data)))
 
+ def encrypt(self, file):
+  return self._crypt(file, self._encryptBlockSize, lambda data: self.encryptBlock(self.packBlock(data)))
+
 
 class BlockCrypter(Crypter):
  def __init__(self, blockSize):
-  super(BlockCrypter, self).__init__(blockSize)
+  super(BlockCrypter, self).__init__(blockSize, blockSize - 4)
 
  def _calcSum(self, data):
   return sum(parse16leArr(data)) & 0xffff
@@ -109,6 +121,13 @@ class BlockCrypter(Crypter):
   if endFlag != self.isLastBlock:
    raise BlockCryptException('Wrong last block flag')
   return data[4:4+size]
+
+ def packBlock(self, data):
+  sizeAndEndFlag = len(data)
+  if self.isLastBlock:
+   sizeAndEndFlag |= 0x8000
+  data = dump16le(sizeAndEndFlag) + data + '\xff' * (self._decryptBlockSize - 4 - len(data))
+  return dump16le(self._calcSum(data)) + data
 
 
 class ShaCrypter(BlockCrypter):
@@ -127,6 +146,9 @@ class ShaCrypter(BlockCrypter):
    xorKey.write(self._digest)
   return strxor(data, xorKey.getvalue())
 
+ def encryptBlock(self, data):
+  return self.decryptBlock(data)
+
 
 class AesCrypter(BlockCrypter):
  """Decrypts a block from a 2nd gen firmware image using AES"""
@@ -136,6 +158,9 @@ class AesCrypter(BlockCrypter):
 
  def decryptBlock(self, data):
   return self._cipher.decrypt(data)
+
+ def encryptBlock(self, data):
+  return self._cipher.encrypt(data)
 
 
 class DoubleAesCrypter(AesCrypter):
@@ -151,6 +176,12 @@ class DoubleAesCrypter(AesCrypter):
    return decrypted[:512] + doubleDecrypted[512:]
   else:
    return doubleDecrypted
+
+ def encryptBlock(self, data):
+  encrypted = self._cipher2.encrypt(data)
+  if self.isFirstBlock:
+   encrypted = data[:512] + encrypted[512:]
+  return super(DoubleAesCrypter, self).encryptBlock(encrypted)
 
 
 _crypters = OrderedDict([
@@ -183,6 +214,15 @@ def decryptFdat(file):
  raise Exception('No decrypter found')
 
 
+def encryptFdat(file, crypterName):
+ """Encrypts a FDAT file"""
+ return _crypters[crypterName]().encrypt(file)
+
+
+def _calcCrc(file):
+ return crc32(FilePart(file, 12, FdatHeader.size - 12))
+
+
 def readFdat(file):
  """Reads a decrypted FDAT file and returns its contents"""
  header = FdatHeader.unpack(file)
@@ -193,7 +233,7 @@ def readFdat(file):
  if header.version != fdatVersion:
   raise Exception('Wrong version')
 
- if crc32(FilePart(file, 12, FdatHeader.size - 12)) != header.checksum:
+ if _calcCrc(file) != header.checksum:
   raise Exception('Wrong checksum')
 
  if header.modeType != updateModeUser:
@@ -219,3 +259,48 @@ def readFdat(file):
   firmware = FilePart(file, header.firmwareOffset, header.firmwareSize),
   fs = FilePart(file, fileSystem.offset, fileSystem.size),
  )
+
+
+def writeFdat(fdat, outFile):
+ """Writes a non-encrypted FDAT file"""
+ outFile.seek(0)
+ outFile.write('\x00' * FdatHeader.size)
+ fsOffset = FdatHeader.size
+
+ fdat.fs.seek(0)
+ shutil.copyfileobj(fdat.fs, outFile)
+ firmwareOffset = outFile.tell()
+
+ fdat.firmware.seek(0)
+ shutil.copyfileobj(fdat.firmware, outFile)
+ endOffset = outFile.tell()
+
+ version = re.match('^(\d)\.(\d{2})$', fdat.version)
+ if not version:
+  raise Exception('Cannot parse version string')
+
+ if modelIsAccessory(fdat.model) != fdat.isAccessory:
+  raise Exception('Wrong accessory flag')
+
+ outFile.seek(0)
+ outFile.write(FdatHeader.pack(
+  magic = fdatHeaderMagic,
+  checksum = 0,
+  version = fdatVersion,
+  modeType = updateModeUser,
+  luwFlag = luwFlagNormal,
+  versionMinor = int(version.group(2), 16),
+  versionMajor = int(version.group(1), 16),
+  model = fdat.model,
+  region = fdat.region,
+  firmwareOffset = firmwareOffset,
+  firmwareSize = endOffset - firmwareOffset,
+  numFileSystems = 2,
+  fileSystemHeaders = FdatFileSystemHeader.pack(modeType=fsModeTypeUser, offset=fsOffset, size=firmwareOffset-fsOffset)
+                    + FdatFileSystemHeader.pack(modeType=fsModeTypeProd, offset=fsOffset, size=0)
+                    + '\x00' * ((maxNumFileSystems-2) * FdatFileSystemHeader.size),
+ ))
+
+ crc = _calcCrc(outFile)
+ outFile.seek(8)
+ outFile.write(dump32le(crc))
