@@ -1,6 +1,9 @@
 """A parser for cramfs file system images"""
 
+from collections import namedtuple, OrderedDict
 import io
+import os
+import posixpath
 from stat import *
 import zlib
 
@@ -96,3 +99,94 @@ def readCramfs(file):
  file.seek(CramfsSuper.size)
  for f in readInode():
   yield f
+
+def _pad(file, n, char='\0'):
+ off = file.tell()
+ if off % n > 0:
+  file.write(char * (n - off % n))
+
+def writeCramfs(files, outFile):
+ files = dict((f.path, f) for f in files)
+ tree = {'': set()}
+ for path in files.iterkeys():
+  while path != '':
+   parent = posixpath.dirname(path).rstrip('/')
+   tree.setdefault(parent, set()).add(path)
+   path = parent
+
+ outFile.seek(0)
+ outFile.write('\0' * CramfsSuper.size)
+
+ stack = OrderedDict()
+ StackItem = namedtuple('StackItem', 'inodeOffset, inodeSize, file, childrenPaths')
+ tail = ['']
+ while tail:
+  file = files.get(tail[0], UnixFile(tail[0], 0, 0, S_IFDIR | 0775, 0, 0, None))
+  childrenPaths = sorted(tree.get(file.path, set()))
+
+  offset = outFile.tell()
+  outFile.write('\0' * CramfsInode.size)
+  outFile.write(posixpath.basename(file.path))
+  _pad(outFile, 4)
+
+  stack[file.path] = StackItem(offset, outFile.tell() - offset, file, childrenPaths)
+  tail = tail[1:] + childrenPaths
+
+ blocks = 0
+ for item in stack.itervalues():
+  if S_ISDIR(item.file.mode):
+   if item.childrenPaths:
+    offset = stack[item.childrenPaths[0]].inodeOffset
+    size = stack[item.childrenPaths[-1]].inodeOffset + stack[item.childrenPaths[-1]].inodeSize - offset
+   else:
+    offset = 0
+    size = 0
+  else:
+   offset = outFile.tell()
+   item.file.contents.seek(0, os.SEEK_END)
+   size = item.file.contents.tell()
+
+   nBlocks = (size - 1) / cramfsBlockSize + 1
+   blocks += nBlocks
+   outFile.write('\0' * (nBlocks * 4))
+
+   item.file.contents.seek(0)
+   for i in xrange(nBlocks):
+    outFile.write(zlib.compress(item.file.contents.read(cramfsBlockSize), 9))
+    o = outFile.tell()
+    outFile.seek(offset + i * 4)
+    outFile.write(dump32le(o))
+    outFile.seek(o)
+   _pad(outFile, 4)
+
+  o = outFile.tell()
+  outFile.seek(item.inodeOffset)
+  outFile.write(CramfsInode.pack(
+   mode = item.file.mode,
+   uid = item.file.uid,
+   size_gid = item.file.gid << 24 | size,
+   nameLen_offset = (offset / 4) << 6 | (item.inodeSize - CramfsInode.size) / 4
+  ))
+  outFile.seek(o)
+
+ _pad(outFile, cramfsBlockSize)
+ size = outFile.tell()
+
+ outFile.seek(0)
+ outFile.write(CramfsSuper.pack(
+  magic = cramfsSuperMagic,
+  size = size,
+  flags = 3,
+  future = 0,
+  signature = cramfsSuperSignature,
+  crc = 0,
+  edition = 0,
+  blocks = blocks,
+  files = len(stack),
+  name = 'Compressed',
+ ))
+
+ outFile.seek(0)
+ crc = crc32(outFile)
+ outFile.seek(32)
+ outFile.write(dump32le(crc))

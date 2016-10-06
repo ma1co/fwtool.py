@@ -2,6 +2,7 @@
 """A command line application to unpack Sony camera firmware images, based on fwtool by oz_paulb / nex-hack"""
 
 import argparse
+import io
 import os
 import shutil
 from stat import *
@@ -39,12 +40,12 @@ def writeFileTree(files, path):
   if S_ISDIR(file.mode) or S_ISREG(file.mode):
    setmtime(fn, file.mtime)
 
-def toUnixFile(path, file, mtime):
+def toUnixFile(path, file, mtime=0):
  return archive.UnixFile(
   path = path,
   size = -1,
   mtime = mtime,
-  mode = S_IFREG,
+  mode = S_IFREG | 0775,
   uid = 0,
   gid = 0,
   contents = file,
@@ -133,12 +134,17 @@ def unpackCommand(file, outDir):
   writeYaml({'dat': datConf, 'fdat': fdatConf}, yamlFile)
 
 
-def packCommand(firmwareFile, fsFile, configFile, outDir):
+def packCommand(firmwareFile, fsFile, bodyFile, configFile, outDir):
  mkdirs(outDir)
 
  config = yaml.safe_load(configFile)
  datConf = config['dat']
  fdatConf = config['fdat']
+
+ if not fsFile and bodyFile:
+  print 'Packing updater file system'
+  fsFile = open(outDir + '/updater_packed.img', 'w+b')
+  archive.cramfs.writeCramfs([toUnixFile('/bodylib/libupdaterbody.so', bodyFile)], fsFile)
 
  if fdatConf:
   print 'Creating firmware image'
@@ -148,8 +154,8 @@ def packCommand(firmwareFile, fsFile, configFile, outDir):
     region = fdatConf['region'],
     version = fdatConf['version'],
     isAccessory = fdatConf['isAccessory'],
-    firmware = firmwareFile,
-    fs = fsFile,
+    firmware = firmwareFile if firmwareFile else io.BytesIO(),
+    fs = fsFile if fsFile else io.BytesIO(),
    ), fdatFile)
 
    if datConf:
@@ -192,8 +198,10 @@ def main():
  unpack.add_argument('-o', dest='outDir', required=True, help='output directory')
  pack = subparsers.add_parser('pack', description='Pack a firmware file')
  pack.add_argument('-c', dest='configFile', type=argparse.FileType('rb'), required=True, help='configuration file (config.yaml)')
- pack.add_argument('-u', dest='updaterFile', type=argparse.FileType('rb'), required=True, help='updater file (updater.img)')
- pack.add_argument('-f', dest='firmwareFile', type=argparse.FileType('rb'), required=True, help='firmware file (firmware.tar)')
+ packBody = pack.add_mutually_exclusive_group()
+ packBody.add_argument('-u', dest='updaterFile', type=argparse.FileType('rb'), help='updater file (updater.img)')
+ packBody.add_argument('-b', dest='updaterBodyFile', type=argparse.FileType('rb'), help='updater body file (libupdaterbody.so)')
+ pack.add_argument('-f', dest='firmwareFile', type=argparse.FileType('rb'), help='firmware file (firmware.tar)')
  pack.add_argument('-o', dest='outDir', required=True, help='output directory')
  printBackup = subparsers.add_parser('print_backup', description='Print the contents of a Backup.bin file')
  printBackup.add_argument('-f', dest='backupFile', type=argparse.FileType('rb'), required=True, help='backup file')
@@ -202,7 +210,7 @@ def main():
  if args.command == 'unpack':
   unpackCommand(args.inFile, args.outDir)
  elif args.command == 'pack':
-  packCommand(args.firmwareFile, args.updaterFile, args.configFile, args.outDir)
+  packCommand(args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile, args.outDir)
  elif args.command == 'print_backup':
   printBackupCommand(args.backupFile)
 
