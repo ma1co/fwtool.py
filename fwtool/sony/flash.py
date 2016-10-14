@@ -34,5 +34,5 @@ def readPartitionTable(file):
 
  for i in xrange(header.nPartition):
   partition = SdmPartition.unpack(file, SdmPartitionTableHeader.size + i*SdmPartition.size)
-  if partition.type != 0:
+  if partition.flag & 1:
    yield i+1, FilePart(file, partition.start, partition.size)

@@ -7,7 +7,6 @@ from Crypto.Util.strxor import strxor
 import io
 import re
 import shutil
-import struct
 
 import constants
 from ..io import *

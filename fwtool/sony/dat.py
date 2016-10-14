@@ -115,7 +115,7 @@ def readDat(file):
  if prov.protocolVersion != provProtocolVersion:
   raise Exception('Wrong protocol version')
 
- descriptors = dict([(descriptorTypeNormal, []), (descriptorTypeUpdater, [])])
+ descriptors = {descriptorTypeNormal: [], descriptorTypeUpdater: []}
  for i in xrange(UdidChunkHeader.unpack(chunks[udidChunkType]).descriptorCount):
   descriptor = UdidChunkDescriptor.unpack(chunks[udidChunkType], UdidChunkHeader.size + i * UdidChunkDescriptor.size)
   descriptors[descriptor.mode].append((descriptor.vid, descriptor.pid))
