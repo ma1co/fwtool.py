@@ -86,9 +86,12 @@ def readExt2(file):
 
    read = 0
    for ptr in ptrs:
-    if ptr != 0 and read < size:
-     file.seek(ptr * blockSize)
-     block = file.read(blockSize)
+    if read < size:
+     if ptr == 0:
+      block = '\0' * blockSize
+     else:
+      file.seek(ptr * blockSize)
+      block = file.read(blockSize)
      yield block[:size-read]
      read += len(block)
 
