@@ -1,12 +1,15 @@
 # Run os x builds on travis-ci.org
 
-language: objective-c
+os: osx
+language: generic
+
+before_install:
+ # Install python
+ - brew update
+ - brew --version
+ - brew install python || brew upgrade python
 
 install:
- # Install python
- - brew install --framework python
- - brew link --overwrite python
-
  # Install dependencies
  - pip install -r requirements.txt
 
