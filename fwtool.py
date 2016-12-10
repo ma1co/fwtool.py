@@ -23,21 +23,27 @@ def setmtime(path, time):
 
 def writeFileTree(files, path):
  """Writes a list of UnixFiles to the disk, unpacking known archive files"""
- for file in files:
-  fn = path + file.path
+ files = [(path + file.path, file) for file in files]
+
+ # Write files:
+ for fn, file in files:
   if S_ISDIR(file.mode):
    mkdirs(fn)
   elif S_ISREG(file.mode):
    mkdirs(os.path.dirname(fn))
-   with open(fn, 'w+b') as dstFile:
+   with open(fn, 'wb') as dstFile:
     shutil.copyfileobj(file.contents, dstFile)
+
+ # Recursion:
+ for fn, file in files:
+  if S_ISREG(file.mode):
+   with open(fn, 'rb') as dstFile:
     if archive.isArchive(dstFile):
      print('Unpacking %s' % fn)
      writeFileTree(archive.readArchive(dstFile), fn + '_unpacked')
 
  # Set mtimes:
- for file in files:
-  fn = path + file.path
+ for fn, file in files:
   if S_ISDIR(file.mode) or S_ISREG(file.mode):
    setmtime(fn, file.mtime)
 
