@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """A command line application to unpack Sony camera firmware images, based on fwtool by oz_paulb / nex-hack"""
 
 from __future__ import print_function
