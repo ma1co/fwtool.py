@@ -1,6 +1,5 @@
 """A parser for FAT file system images"""
 
-import io
 from stat import *
 import time
 
@@ -27,8 +26,8 @@ FatHeader = Struct('FatHeader', [
  ('...', 448),
  ('signature', Struct.STR % 2),
 ])
-fatHeaderSignature = '\x55\xaa'
-fatHeaderExtendedSignature = '\x29'
+fatHeaderSignature = b'\x55\xaa'
+fatHeaderExtendedSignature = b'\x29'
 
 FatDirEntry = Struct('FatDirEntry', [
  ('name', Struct.STR % 8),
@@ -52,7 +51,7 @@ VfatDirEntry = Struct('VfatDirEntry', [
 
 def isFat(file):
  header = FatHeader.unpack(file)
- return header and header.signature == fatHeaderSignature and header.extendedSignature == fatHeaderExtendedSignature and header.fsType.startswith('FAT')
+ return header and header.signature == fatHeaderSignature and header.extendedSignature == fatHeaderExtendedSignature and header.fsType.startswith(b'FAT')
 
 def readFat(file):
  header = FatHeader.unpack(file)
@@ -62,38 +61,38 @@ def readFat(file):
 
  fatOffset = header.reservedSectors * header.bytesPerSector
  rootOffset = fatOffset + header.fatCopies * header.sectorsPerFat * header.bytesPerSector
- dataOffset = rootOffset + ((header.rootEntries * FatDirEntry.size - 1) / header.bytesPerSector + 1) * header.bytesPerSector
+ dataOffset = rootOffset + ((header.rootEntries * FatDirEntry.size - 1) // header.bytesPerSector + 1) * header.bytesPerSector
 
  file.seek(fatOffset)
- if header.fsType == 'FAT12   ':
+ if header.fsType == b'FAT12   ':
   endMarker = 0xfff
-  packedClusters = [parse32le(file.read(3) + '\x00') for i in xrange(0, header.sectorsPerFat * header.bytesPerSector, 3)]
+  packedClusters = [parse32le(file.read(3) + b'\0') for i in range(0, header.sectorsPerFat * header.bytesPerSector, 3)]
   clusters = [cluster for packed in packedClusters for cluster in [packed & 0xfff, (packed >> 12) & 0xfff]]
- elif header.fsType == 'FAT16   ':
+ elif header.fsType == b'FAT16   ':
   endMarker = 0xffff
-  clusters = [parse16le(file.read(2)) for i in xrange(0, header.sectorsPerFat * header.bytesPerSector, 2)]
+  clusters = [parse16le(file.read(2)) for i in range(0, header.sectorsPerFat * header.bytesPerSector, 2)]
  else:
   raise Exception('Unknown FAT width')
 
  def readDir(entries, path=''):
   offset = 0
-  vfatName = ''
-  while entries[offset] != '\x00':
+  vfatName = b''
+  while entries[offset:offset+1] != b'\0':
    entry = FatDirEntry.unpack(entries, offset)
-   if entry.name[0] != '\xe5':
+   if entry.name[0:1] != b'\xe5':
     if entry.attr == 0x0f:
      # VFAT
      vfatEntry = VfatDirEntry.unpack(entries, offset)
      vfatName = vfatEntry.name1 + vfatEntry.name2 + vfatEntry.name3 + vfatName
     else:
-     if vfatName != '':
-      name = vfatName.decode('utf16').rstrip(u'\x00\uffff')
-      vfatName = ''
+     if vfatName != b'':
+      name = vfatName.decode('utf16').rstrip(u'\0\uffff')
+      vfatName = b''
      else:
-      name = entry.name.rstrip(' ')
+      name = entry.name.decode('ascii').rstrip(' ')
       if name[0] == '\x05':
        name = '\xe5' + name[1:]
-      ext = entry.ext.rstrip(' ')
+      ext = entry.ext.decode('ascii').rstrip(' ')
       if ext != '':
        name += '.' + ext
 

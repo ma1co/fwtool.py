@@ -25,8 +25,8 @@ CramfsSuper = Struct('CramfsSuper', [
  ('name', Struct.STR % 16),
 ])
 cramfsBlockSize = 4096
-cramfsSuperMagic = '\x45\x3d\xcd\x28'
-cramfsSuperSignature = 'Compressed ROMFS'
+cramfsSuperMagic = b'\x45\x3d\xcd\x28'
+cramfsSuperSignature = b'Compressed ROMFS'
 
 CramfsInode = Struct('CramfsInode', [
  ('mode', Struct.INT16),
@@ -52,7 +52,7 @@ def readCramfs(file):
  if super.magic != cramfsSuperMagic or super.signature != cramfsSuperSignature:
   raise Exception('Wrong magic')
 
- if crc32(FilePart(file, 0, 32), io.BytesIO(4 * '\x00'), FilePart(file, 36)) != super.crc:
+ if crc32(FilePart(file, 0, 32), io.BytesIO(4 * b'\0'), FilePart(file, 36)) != super.crc:
   raise Exception('Wrong checksum')
 
  def readInode(path=''):
@@ -64,16 +64,16 @@ def readCramfs(file):
   nameLen = (inode.nameLen_offset & 0x3f) * 4
   offset = (inode.nameLen_offset >> 6) * 4
   file.seek(off + CramfsInode.size)
-  name = file.read(nameLen).rstrip('\0')
+  name = file.read(nameLen).rstrip(b'\0').decode('ascii')
 
   path += name
   isDir = S_ISDIR(inode.mode)
 
   def generateChunks(offset=offset, size=size):
-   nBlocks = (size - 1) / cramfsBlockSize + 1
+   nBlocks = (size - 1) // cramfsBlockSize + 1
    file.seek(offset)
-   blockPointers = [offset + nBlocks * 4] + [parse32le(file.read(4)) for i in xrange(nBlocks)]
-   for i in xrange(len(blockPointers) - 1):
+   blockPointers = [offset + nBlocks * 4] + [parse32le(file.read(4)) for i in range(nBlocks)]
+   for i in range(len(blockPointers) - 1):
     file.seek(blockPointers[i])
     block = file.read(blockPointers[i+1] - blockPointers[i])
     yield decompress(block)
@@ -100,40 +100,40 @@ def readCramfs(file):
  for f in readInode():
   yield f
 
-def _pad(file, n, char='\0'):
+def _pad(file, n, char=b'\0'):
  off = file.tell()
  if off % n > 0:
   file.write(char * (n - off % n))
 
 def writeCramfs(files, outFile):
- files = dict((f.path, f) for f in files)
+ files = {f.path: f for f in files}
  tree = {'': set()}
- for path in files.iterkeys():
+ for path in files:
   while path != '':
    parent = posixpath.dirname(path).rstrip('/')
    tree.setdefault(parent, set()).add(path)
    path = parent
 
  outFile.seek(0)
- outFile.write('\0' * CramfsSuper.size)
+ outFile.write(b'\0' * CramfsSuper.size)
 
  stack = OrderedDict()
  StackItem = namedtuple('StackItem', 'inodeOffset, inodeSize, file, childrenPaths')
  tail = ['']
  while tail:
-  file = files.get(tail[0], UnixFile(tail[0], 0, 0, S_IFDIR | 0775, 0, 0, None))
+  file = files.get(tail[0], UnixFile(tail[0], 0, 0, S_IFDIR | 0o775, 0, 0, None))
   childrenPaths = sorted(tree.get(file.path, set()))
 
   offset = outFile.tell()
-  outFile.write('\0' * CramfsInode.size)
-  outFile.write(posixpath.basename(file.path))
+  outFile.write(b'\0' * CramfsInode.size)
+  outFile.write(posixpath.basename(file.path).encode('ascii'))
   _pad(outFile, 4)
 
   stack[file.path] = StackItem(offset, outFile.tell() - offset, file, childrenPaths)
   tail = tail[1:] + childrenPaths
 
  blocks = 0
- for item in stack.itervalues():
+ for item in stack.values():
   if S_ISDIR(item.file.mode):
    if item.childrenPaths:
     offset = stack[item.childrenPaths[0]].inodeOffset
@@ -146,12 +146,12 @@ def writeCramfs(files, outFile):
    item.file.contents.seek(0, os.SEEK_END)
    size = item.file.contents.tell()
 
-   nBlocks = (size - 1) / cramfsBlockSize + 1
+   nBlocks = (size - 1) // cramfsBlockSize + 1
    blocks += nBlocks
-   outFile.write('\0' * (nBlocks * 4))
+   outFile.write(b'\0' * (nBlocks * 4))
 
    item.file.contents.seek(0)
-   for i in xrange(nBlocks):
+   for i in range(nBlocks):
     outFile.write(zlib.compress(item.file.contents.read(cramfsBlockSize), 9))
     o = outFile.tell()
     outFile.seek(offset + i * 4)
@@ -165,7 +165,7 @@ def writeCramfs(files, outFile):
    mode = item.file.mode,
    uid = item.file.uid,
    size_gid = item.file.gid << 24 | size,
-   nameLen_offset = (offset / 4) << 6 | (item.inodeSize - CramfsInode.size) / 4
+   nameLen_offset = (offset // 4) << 6 | (item.inodeSize - CramfsInode.size) // 4
   ))
   outFile.seek(o)
 
@@ -183,7 +183,7 @@ def writeCramfs(files, outFile):
   edition = 0,
   blocks = blocks,
   files = len(stack),
-  name = 'Compressed',
+  name = b'Compressed',
  ))
 
  outFile.seek(0)

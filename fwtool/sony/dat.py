@@ -5,7 +5,6 @@ import io
 import re
 import shutil
 
-import constants
 from ..io import FilePart
 from ..util import *
 
@@ -14,7 +13,7 @@ DatFile = namedtuple('DatFile', 'normalUsbDescriptors, updaterUsbDescriptors, is
 DatHeader = Struct('DatHeader', [
  ('magic', Struct.STR % 8),
 ])
-datHeaderMagic = '\x89\x55\x46\x55\x0d\x0a\x1a\x0a'
+datHeaderMagic = b'\x89\x55\x46\x55\x0d\x0a\x1a\x0a'
 
 DatChunkHeader = Struct('DatChunkHeader', [
  ('size', Struct.INT32),
@@ -25,20 +24,20 @@ DatvChunk = Struct('DatvChunk', [
  ('dataVersion', Struct.INT16),
  ('isLens', Struct.INT16),
 ], Struct.BIG_ENDIAN)
-datvChunkType = 'DATV'
+datvChunkType = b'DATV'
 datvDataVersion = 0x100
 
 ProvChunk = Struct('ProvChunk', [
  ('protocolVersion', Struct.INT16),
  ('reserved', 2),
 ], Struct.BIG_ENDIAN)
-provChunkType = 'PROV'
+provChunkType = b'PROV'
 provProtocolVersion = 0x100
 
 UdidChunkHeader = Struct('UdidChunkHeader', [
  ('descriptorCount', Struct.INT32),
 ], Struct.BIG_ENDIAN)
-udidChunkType = 'UDID'
+udidChunkType = b'UDID'
 
 UdidChunkDescriptor = Struct('UdidChunkDescriptor', [
  ('pid', Struct.INT16),
@@ -49,12 +48,12 @@ UdidChunkDescriptor = Struct('UdidChunkDescriptor', [
 descriptorTypeNormal = 1
 descriptorTypeUpdater = 2
 
-fdatChunkType = 'FDAT'
+fdatChunkType = b'FDAT'
 
 DendChunk = Struct('DendChunk', [
  ('crc', Struct.INT32),
 ], Struct.BIG_ENDIAN)
-dendChunkType = 'DEND'
+dendChunkType = b'DEND'
 
 def findDat(paths):
  """Guesses the .dat file from a list of filenames"""
@@ -90,7 +89,7 @@ def writeChunks(chunks, file):
 
  for type, contents in chunks:
   file.seek(offset)
-  file.write('\x00' * DatChunkHeader.size)
+  file.write(b'\0' * DatChunkHeader.size)
   contents.seek(0)
   shutil.copyfileobj(contents, file)
   file.seek(offset)
@@ -116,7 +115,7 @@ def readDat(file):
   raise Exception('Wrong protocol version')
 
  descriptors = {descriptorTypeNormal: [], descriptorTypeUpdater: []}
- for i in xrange(UdidChunkHeader.unpack(chunks[udidChunkType]).descriptorCount):
+ for i in range(UdidChunkHeader.unpack(chunks[udidChunkType]).descriptorCount):
   descriptor = UdidChunkDescriptor.unpack(chunks[udidChunkType], UdidChunkHeader.size + i * UdidChunkDescriptor.size)
   descriptors[descriptor.mode].append((descriptor.vid, descriptor.pid))
 
@@ -144,7 +143,7 @@ def writeDat(dat, file):
   (provChunkType, io.BytesIO(ProvChunk.pack(protocolVersion=provProtocolVersion))),
   (udidChunkType, udidChunk),
   (fdatChunkType, dat.firmwareData),
-  (dendChunkType, io.BytesIO('\x00' * DendChunk.size)),
+  (dendChunkType, io.BytesIO(b'\0' * DendChunk.size)),
  ], file)
 
  crc = _calcCrc(file, fileSize)

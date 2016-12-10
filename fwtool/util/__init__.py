@@ -42,7 +42,7 @@ def dump16le(value):
  return struct.pack('<H', value)
 
 def parse16leArr(data):
- return struct.unpack('<%sH' % str(len(data) / 2), data)
+ return struct.unpack('<%sH' % str(len(data) // 2), data)
 
 def parse8(data):
  return ord(data)
@@ -53,11 +53,11 @@ def dump8(value):
 def crc32(*files):
  crc = 0
  for file in files:
-  for chunk in iter(lambda: file.read(4096), ''):
+  for chunk in iter(lambda: file.read(4096), b''):
    crc = binascii.crc32(chunk, crc)
  return crc & 0xffffffff
 
-class Struct:
+class Struct(object):
  LITTLE_ENDIAN = '<'
  BIG_ENDIAN = '>'
  PADDING = '%dx'
@@ -74,7 +74,7 @@ class Struct:
   self.size = struct.calcsize(self.format)
 
  def unpack(self, data, offset = 0):
-  if isinstance(data, basestring):
+  if isinstance(data, bytes):
    data = data[offset:offset+self.size]
   else:
    data.seek(offset)

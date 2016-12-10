@@ -10,7 +10,7 @@ DosHeader = Struct('DosHeader', [
  ('...', 58),
  ('peHeaderOffset', Struct.INT32),
 ])
-dosHeaderMagic = 'MZ'
+dosHeaderMagic = b'MZ'
 
 PeHeader = Struct('PeHeader', [
  ('magic', Struct.STR % 4),
@@ -20,7 +20,7 @@ PeHeader = Struct('PeHeader', [
  ('optionalSize', Struct.INT16),
  ('...', 2),
 ])
-peHeaderMagic = 'PE\x00\x00'
+peHeaderMagic = b'PE\0\0'
 
 SectionHeader = Struct('SectionHeader', [
  ('type', Struct.STR % 8),
@@ -45,8 +45,8 @@ def readExe(file):
   raise Exception('Wrong magic')
 
  sections = OrderedDict()
- for i in xrange(peHeader.numSections):
+ for i in range(peHeader.numSections):
   section = SectionHeader.unpack(file, dosHeader.peHeaderOffset + PeHeader.size + peHeader.optionalSize + i * SectionHeader.size)
-  sections[section.type] = FilePart(file, section.offset, section.size)
+  sections[section.type.decode('ascii')] = FilePart(file, section.offset, section.size)
 
  return sections

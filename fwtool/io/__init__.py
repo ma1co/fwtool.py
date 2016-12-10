@@ -1,6 +1,6 @@
 import os
 
-class FilePart:
+class FilePart(object):
  """A view of a part of a file. Can be used like a regular file"""
  def __init__(self, file, offset=0, size=-1):
   if size < 0:
@@ -32,14 +32,14 @@ class FilePart:
   return data
 
 
-class ChunkedFile:
+class ChunkedFile(object):
  def __init__(self, generateChunks, size=-1):
   self._generateChunks = generateChunks
   self._size = size
   self.seek(0)
 
  def read(self, n=-1):
-  if self._chunks == None:
+  if self._chunks is None:
    self._chunks = self._generateChunks()
 
   try:
@@ -60,11 +60,11 @@ class ChunkedFile:
   if whence == os.SEEK_SET and pos == 0:
    self._chunks = None
    self._pos = 0
-   self._buffer = ''
+   self._buffer = b''
   elif whence == os.SEEK_END and pos == 0 and self._size >= 0:
    self._chunks = iter(())
    self._pos = self._size
-   self._buffer = ''
+   self._buffer = b''
   else:
    raise Exception('Seeking is not supported')
 

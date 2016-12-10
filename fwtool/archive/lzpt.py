@@ -18,7 +18,7 @@ LzptHeader = Struct('LzptHeader', [
  ('tocSize', Struct.INT32),
 ])
 # CMPR_LZPART_MAGIC
-lzptHeaderMagic = 'TPZL'
+lzptHeaderMagic = b'TPZL'
 
 # struct wbi_lzp_entry
 LzptTocEntry = Struct('LzptTocEntry', [
@@ -38,7 +38,7 @@ def readLzpt(file):
  if header.magic != lzptHeaderMagic:
   raise Exception('Wrong magic')
 
- tocEntries = [LzptTocEntry.unpack(file, header.tocOffset + offset) for offset in xrange(0, header.tocSize, LzptTocEntry.size)]
+ tocEntries = [LzptTocEntry.unpack(file, header.tocOffset + offset) for offset in range(0, header.tocSize, LzptTocEntry.size)]
 
  def generateChunks():
   for entry in tocEntries:

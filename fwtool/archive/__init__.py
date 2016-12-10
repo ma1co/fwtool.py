@@ -22,7 +22,7 @@ def _findType(data):
  return None
 
 def isArchive(data):
- return _findType(data) != None
+ return _findType(data) is not None
 
 def readArchive(data):
  return _findType(data)(data)

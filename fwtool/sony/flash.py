@@ -10,8 +10,8 @@ SdmPartitionTableHeader = Struct('SdmPartitionTableHeader', [
  ('nPartition', Struct.INT32),
  ('...', 20),
 ])
-sdmPartitionTableHeaderMagic = '8246'
-sdmPartitionTableHeaderVersion = '1.00'
+sdmPartitionTableHeaderMagic = b'8246'
+sdmPartitionTableHeaderVersion = b'1.00'
 
 SdmPartition = Struct('SdmPartition', [
  ('start', Struct.INT32),
@@ -32,7 +32,7 @@ def readPartitionTable(file):
  if header.version != sdmPartitionTableHeaderVersion:
   raise Exception('Wrong version')
 
- for i in xrange(header.nPartition):
+ for i in range(header.nPartition):
   partition = SdmPartition.unpack(file, SdmPartitionTableHeader.size + i*SdmPartition.size)
   if partition.flag & 1:
    yield i+1, FilePart(file, partition.start, partition.size)

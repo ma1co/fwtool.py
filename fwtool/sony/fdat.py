@@ -8,7 +8,7 @@ import io
 import re
 import shutil
 
-import constants
+from . import constants
 from ..io import *
 from ..util import *
 
@@ -48,18 +48,18 @@ FdatHeader = Struct('FdatHeader', [
 
  ('fileSystemHeaders', Struct.STR % (maxNumFileSystems * FdatFileSystemHeader.size))
 ])
-fdatHeaderMagic = 'UDTRFIRM'
-fdatVersion = '0100'
+fdatHeaderMagic = b'UDTRFIRM'
+fdatVersion = b'0100'
 
-updateModeUser = 'U'
-updateModeVerskip = 'O'
-updateModeMinor = 'M'
-updateModeProd = 'P'
+updateModeUser = b'U'
+updateModeVerskip = b'O'
+updateModeMinor = b'M'
+updateModeProd = b'P'
 
-luwFlagNormal = 'N'
+luwFlagNormal = b'N'
 
-fsModeTypeUser = 'U'
-fsModeTypeProd = 'P'
+fsModeTypeUser = b'U'
+fsModeTypeProd = b'P'
 
 
 class BlockCryptException(Exception):
@@ -88,10 +88,10 @@ class Crypter(object):
    file.seek(0)
    self.isFirstBlock = True
    nextData = file.read(blockSize)
-   while nextData != '':
+   while nextData != b'':
     data = nextData
     nextData = file.read(blockSize)
-    self.isLastBlock = (nextData == '')
+    self.isLastBlock = (nextData == b'')
     yield cryptFunc(data)
     self.isFirstBlock = False
   return ChunkedFile(generateChunks)
@@ -125,7 +125,7 @@ class BlockCrypter(Crypter):
   sizeAndEndFlag = len(data)
   if self.isLastBlock:
    sizeAndEndFlag |= 0x8000
-  data = dump16le(sizeAndEndFlag) + data + '\xff' * (self._decryptBlockSize - 4 - len(data))
+  data = dump16le(sizeAndEndFlag) + data + b'\xff' * (self._decryptBlockSize - 4 - len(data))
   return dump16le(self._calcSum(data)) + data
 
 
@@ -197,12 +197,12 @@ def modelIsAccessory(model):
 def isFdat(file):
  """Returns true if the file provided is a fdat file"""
  header = FdatHeader.unpack(file)
- return header and header.magic == fdatHeaderMagic and header.fileSystemHeaders.endswith(4*'\x00')
+ return header and header.magic == fdatHeaderMagic and header.fileSystemHeaders.endswith(4*b'\0')
 
 
 def decryptFdat(file):
  """Decrypts an encrypted FDAT file"""
- for crypterName, crypter in _crypters.iteritems():
+ for crypterName, crypter in _crypters.items():
   try:
    fdatFile = crypter().decrypt(file)
    if isFdat(fdatFile):
@@ -242,7 +242,7 @@ def readFdat(file):
   raise Exception('Unsupported LUW flag')
 
  fileSystem = None
- for i in xrange(0, len(header.fileSystemHeaders), FdatFileSystemHeader.size):
+ for i in range(0, len(header.fileSystemHeaders), FdatFileSystemHeader.size):
   fs = FdatFileSystemHeader.unpack(header.fileSystemHeaders, i)
   if fs.modeType == fsModeTypeUser:
    fileSystem = fs
@@ -263,7 +263,7 @@ def readFdat(file):
 def writeFdat(fdat, outFile):
  """Writes a non-encrypted FDAT file"""
  outFile.seek(0)
- outFile.write('\x00' * FdatHeader.size)
+ outFile.write(b'\0' * FdatHeader.size)
  fsOffset = FdatHeader.size
 
  fdat.fs.seek(0)
@@ -297,7 +297,7 @@ def writeFdat(fdat, outFile):
   numFileSystems = 2,
   fileSystemHeaders = FdatFileSystemHeader.pack(modeType=fsModeTypeUser, offset=fsOffset, size=firmwareOffset-fsOffset)
                     + FdatFileSystemHeader.pack(modeType=fsModeTypeProd, offset=fsOffset, size=0)
-                    + '\x00' * ((maxNumFileSystems-2) * FdatFileSystemHeader.size),
+                    + b'\0' * ((maxNumFileSystems-2) * FdatFileSystemHeader.size),
  ))
 
  crc = _calcCrc(outFile)

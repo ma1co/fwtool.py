@@ -10,7 +10,7 @@ GzipHeader = Struct('GzipHeader', [
  ('magic', Struct.STR % 2),
  ('...', 8),
 ])
-gzipHeaderMagic = '\x1f\x8b'
+gzipHeaderMagic = b'\x1f\x8b'
 
 def isGzip(file):
  """Returns true if the file provided is a gzip file"""

@@ -19,8 +19,8 @@ AxfsHeader = Struct('AxfsHeader', [
  ('regions', Struct.STR % 144),
  ('...', 13),
 ], Struct.BIG_ENDIAN)
-axfsHeaderMagic = '\x48\xA0\xE4\xCD'
-axfsHeaderSignature = 'Advanced XIP FS\x00'
+axfsHeaderMagic = b'\x48\xA0\xE4\xCD'
+axfsHeaderSignature = b'Advanced XIP FS\0'
 
 AxfsRegionDesc = Struct('AxfsRegionDesc', [
  ('offset', Struct.INT64),
@@ -70,7 +70,7 @@ def readAxfs(file):
   regions[k] = FilePart(file, region.offset, region.size)
   if i >= 4:
    regionData = regions[k].read()
-   tables[k] = [sum([ord(regionData[j * region.maxIndex + i]) << (8*j) for j in xrange(region.tableByteDepth)]) for i in xrange(region.maxIndex)]
+   tables[k] = [sum([ord(regionData[j*region.maxIndex+i:j*region.maxIndex+i+1]) << (8*j) for j in range(region.tableByteDepth)]) for i in range(region.maxIndex)]
 
  def readInode(id, path=''):
   size = tables['fileSize'][id]
@@ -81,18 +81,18 @@ def readAxfs(file):
   numEntries = tables['numEntries'][id]
   arrayIndex = tables['arrayIndex'][id]
 
-  name = ''
+  name = b''
   regions['strings'].seek(nameOffset)
-  while '\x00' not in name:
+  while b'\0' not in name:
    name += regions['strings'].read(1024)
-  name = name.partition('\x00')[0]
+  name = name.partition(b'\0')[0].decode('ascii')
 
   path += name if id != 0 else ''
   isDir = S_ISDIR(mode)
 
   def generateChunks(arrayIndex=arrayIndex, numEntries=numEntries, size=size):
    read = 0
-   for i in xrange(numEntries):
+   for i in range(numEntries):
     nodeType = tables['nodeType'][arrayIndex + i]
     nodeIndex = tables['nodeIndex'][arrayIndex + i]
     if nodeType == 0:
@@ -121,7 +121,7 @@ def readAxfs(file):
   )
 
   if isDir:
-   for i in xrange(numEntries):
+   for i in range(numEntries):
     for f in readInode(arrayIndex + i, path + '/'):
      yield f
 

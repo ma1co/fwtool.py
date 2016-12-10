@@ -4,7 +4,7 @@ import subprocess, sys
 
 # Generate filename
 suffix = {'linux2': '-linux', 'win32': '-win', 'darwin': '-osx'}
-output = 'fwtool-' + subprocess.check_output(['git', 'describe', '--always', '--tags']).strip() + suffix.get(sys.platform, '')
+output = 'fwtool-' + subprocess.check_output(['git', 'describe', '--always', '--tags']).decode('ascii').strip() + suffix.get(sys.platform, '')
 
 # Analyze files
 a = Analysis(['fwtool.py'])

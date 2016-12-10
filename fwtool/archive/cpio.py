@@ -1,7 +1,5 @@
 """A simple parser for "new ascii format" cpio archives"""
 
-import os
-
 from . import *
 from ..io import *
 from ..util import *
@@ -19,7 +17,7 @@ CpioHeader = Struct('CpioHeader', [
  ('nameSize', Struct.STR % 8),
  ('check', Struct.STR % 8),
 ])
-cpioHeaderMagic = '070701'
+cpioHeaderMagic = b'070701'
 
 def isCpio(file):
  """Returns true if the file provided is a cpio file"""
@@ -27,7 +25,7 @@ def isCpio(file):
  return header and header.magic == cpioHeaderMagic
 
 def _roundUp(n, i):
- return (n + i - 1) / i * i
+ return (n + i - 1) // i * i
 
 def readCpio(file):
  """Unpacks a cpio archive and returns the contained files"""
@@ -39,7 +37,7 @@ def readCpio(file):
   header = CpioHeader.tuple._make(int(i, 16) for i in header)
 
   file.seek(offset + CpioHeader.size)
-  name = file.read(header.nameSize).rstrip('\x00')
+  name = file.read(header.nameSize).rstrip(b'\0').decode('ascii')
 
   if name == 'TRAILER!!!':
    break

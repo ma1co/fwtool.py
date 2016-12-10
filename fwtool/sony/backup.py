@@ -45,9 +45,9 @@ def readBackup(file):
 
  if header.magic != backupHeaderMagic:
   raise Exception('Wrong magic')
- if header.version[:2] != 'BK':
+ if header.version[:2] != b'BK':
   raise Exception('Wrong version number')
- version = int(header.version[2])
+ version = int(header.version[2:3])
 
  headerLength = 0x100 if version >= 2 else 0x20
  PropertyTableEntry = PropertyTableEntryV4 if version >= 4 else PropertyTableEntryV1
@@ -55,10 +55,10 @@ def readBackup(file):
  subsystemTableOffset = headerLength
  propertyTableOffset = subsystemTableOffset + header.numSubsystems * SubsystemTableEntry.size
 
- for i in xrange(header.numSubsystems):
+ for i in range(header.numSubsystems):
   subsystem = SubsystemTableEntry.unpack(file, subsystemTableOffset + i * SubsystemTableEntry.size)
 
-  for j in xrange(subsystem.numProperties):
+  for j in range(subsystem.numProperties):
    id = i << 16 | j
    property = PropertyTableEntry.unpack(file, propertyTableOffset + (subsystem.ptr + j) * PropertyTableEntry.size)
 

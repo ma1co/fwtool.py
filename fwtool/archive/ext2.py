@@ -20,7 +20,7 @@ Ext2Header = Struct('Ext2Header', [
  ('magic', Struct.STR % 2),
  ('...', 966),
 ])
-ext2HeaderMagic = '\x53\xef'
+ext2HeaderMagic = b'\x53\xef'
 
 Ext2Bgd = Struct('Ext2BlockGroupDescriptor', [
  ('...', 8),
@@ -62,11 +62,11 @@ def readExt2(file):
  blockSize = 1024 << header.blockSize
 
  bdgOffset = max(blockSize, 2048)
- numBlockGroups = (header.blocksCount - 1) / header.blocksPerGroup + 1
- inodeTables = [Ext2Bgd.unpack(file, bdgOffset + i * Ext2Bgd.size).inodeTableBlock for i in xrange(numBlockGroups)]
+ numBlockGroups = (header.blocksCount-1) // header.blocksPerGroup + 1
+ inodeTables = [Ext2Bgd.unpack(file, bdgOffset + i * Ext2Bgd.size).inodeTableBlock for i in range(numBlockGroups)]
 
  def readInode(i, path = ''):
-  inode = Ext2Inode.unpack(file, inodeTables[(i-1)/header.inodesPerGroup] * blockSize + ((i-1)%header.inodesPerGroup) * Ext2Inode.size)
+  inode = Ext2Inode.unpack(file, inodeTables[(i-1) // header.inodesPerGroup] * blockSize + ((i-1) % header.inodesPerGroup) * Ext2Inode.size)
 
   def generateChunks(contents=inode.blocks, size=inode.size, mode=inode.mode):
    if S_ISLNK(mode) and size <= len(contents):
@@ -75,20 +75,20 @@ def readExt2(file):
     return
 
    ptrs = []
-   for i in xrange(15, 11, -1):
+   for i in range(15, 11, -1):
     # resolve indirect pointers
     contents = contents[:i*4]
     for ptr in ptrs[i:]:
      if ptr != 0:
       file.seek(ptr * blockSize)
       contents += file.read(blockSize)
-    ptrs = [parse32le(contents[j:j+4]) for j in xrange(0, len(contents), 4)]
+    ptrs = [parse32le(contents[j:j+4]) for j in range(0, len(contents), 4)]
 
    read = 0
    for ptr in ptrs:
     if read < size:
      if ptr == 0:
-      block = '\0' * blockSize
+      block = b'\0' * blockSize
      else:
       file.seek(ptr * blockSize)
       block = file.read(blockSize)
@@ -111,7 +111,7 @@ def readExt2(file):
   if isDir:
    while contents.tell() < inode.size:
     entry = Ext2DirEntry.unpack(contents.read(Ext2DirEntry.size))
-    name = contents.read(entry.nameSize)
+    name = contents.read(entry.nameSize).decode('ascii')
     if name != '.' and name != '..':
      for f in readInode(entry.inode, path + '/' + name):
       yield f

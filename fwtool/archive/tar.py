@@ -12,7 +12,7 @@ TarHeader = Struct('TarHeader', [
  ('version', Struct.STR % 2),
  ('...', 235),
 ])
-tarHeaderMagic = 'ustar\x00'
+tarHeaderMagic = b'ustar\0'
 
 def _convertFileType(type):
  return {

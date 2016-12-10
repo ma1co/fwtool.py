@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A command line application to unpack Sony camera firmware images, based on fwtool by oz_paulb / nex-hack"""
 
+from __future__ import print_function
 import argparse
 import io
 import os
@@ -31,7 +32,7 @@ def writeFileTree(files, path):
    with open(fn, 'w+b') as dstFile:
     shutil.copyfileobj(file.contents, dstFile)
     if archive.isArchive(dstFile):
-     print 'Unpacking %s' % fn
+     print('Unpacking %s' % fn)
      writeFileTree(archive.readArchive(dstFile), fn + '_unpacked')
 
  # Set mtimes:
@@ -45,7 +46,7 @@ def toUnixFile(path, file, mtime=0):
   path = path,
   size = -1,
   mtime = mtime,
-  mode = S_IFREG | 0775,
+  mode = S_IFREG | 0o775,
   uid = 0,
   gid = 0,
   contents = file,
@@ -59,7 +60,7 @@ def writeYaml(yamlData, file):
 
 
 def unpackInstaller(exeFile, datFile):
- print 'Extracting installer binary'
+ print('Extracting installer binary')
  exeSectors = pe.readExe(exeFile)
  zipFile = exeSectors['_winzip_']
  zippedFiles = dict((file.path, file) for file in zip.readZip(zipFile))
@@ -71,7 +72,7 @@ def unpackInstaller(exeFile, datFile):
 
 
 def unpackDat(datFile, fdatFile):
- print 'Decrypting firmware image'
+ print('Decrypting firmware image')
  datContents = dat.readDat(datFile)
  crypterName, data = fdat.decryptFdat(datContents.firmwareData)
  shutil.copyfileobj(data, fdatFile)
@@ -85,7 +86,7 @@ def unpackDat(datFile, fdatFile):
 
 
 def unpackFdat(fdatFile, outDir, mtime):
- print 'Extracting files'
+ print('Extracting files')
  fdatContents = fdat.readFdat(fdatFile)
 
  writeFileTree([
@@ -102,7 +103,7 @@ def unpackFdat(fdatFile, outDir, mtime):
 
 
 def unpackDump(dumpFile, outDir, mtime):
- print 'Extracting partitions'
+ print('Extracting partitions')
  writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(dumpFile)), outDir)
 
 
@@ -130,7 +131,7 @@ def unpackCommand(file, outDir):
  else:
   raise Exception('Unknown file type!')
 
- with open(outDir + '/config.yaml', 'wb') as yamlFile:
+ with open(outDir + '/config.yaml', 'w') as yamlFile:
   writeYaml({'dat': datConf, 'fdat': fdatConf}, yamlFile)
 
 
@@ -142,12 +143,12 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, outDir):
  fdatConf = config['fdat']
 
  if not fsFile and bodyFile:
-  print 'Packing updater file system'
+  print('Packing updater file system')
   fsFile = open(outDir + '/updater_packed.img', 'w+b')
   archive.cramfs.writeCramfs([toUnixFile('/bodylib/libupdaterbody.so', bodyFile)], fsFile)
 
  if fdatConf:
-  print 'Creating firmware image'
+  print('Creating firmware image')
   with open(outDir + '/firmware_packed.fdat', 'w+b') as fdatFile:
    fdat.writeFdat(fdat.FdatFile(
     model = fdatConf['model'],
@@ -159,7 +160,7 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, outDir):
    ), fdatFile)
 
    if datConf:
-    print 'Encrypting firmware image'
+    print('Encrypting firmware image')
     encrypted = fdat.encryptFdat(fdatFile, datConf['crypterName'])
     with open(outDir + '/firmware_packed.dat', 'w+b') as datFile:
      dat.writeDat(dat.DatFile(
@@ -171,22 +172,22 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, outDir):
 
 
 def printHexDump(data, n=16, indent=0):
- for i in xrange(0, len(data), n):
-  line = data[i:i+n]
-  hex = ' '.join('%02x' % ord(c) for c in line)
-  text = ''.join(c if len(repr(c)) == 3 and c != ' ' else '.' for c in line)
-  print '%*s%-*s %s' % (indent, '', n*3, hex, text)
+ for i in range(0, len(data), n):
+  line = bytearray(data[i:i+n])
+  hex = ' '.join('%02x' % c for c in line)
+  text = ''.join(chr(c) if 0x21 <= c <= 0x7e else '.' for c in line)
+  print('%*s%-*s %s' % (indent, '', n*3, hex, text))
 
 
 def printBackupCommand(file):
  """Prints all properties in a Backup.bin file"""
  for property in backup.readBackup(file):
-  print 'id=0x%08x, size=0x%04x, attr=0x%02x:' % (property.id, len(property.data), property.attr)
+  print('id=0x%08x, size=0x%04x, attr=0x%02x:' % (property.id, len(property.data), property.attr))
   printHexDump(property.data, indent=2)
   if property.resetData and property.resetData != property.data:
-   print 'reset data:'
+   print('reset data:')
    printHexDump(property.resetData, indent=2)
-  print ''
+  print('')
 
 
 def main():
@@ -213,6 +214,8 @@ def main():
   packCommand(args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile, args.outDir)
  elif args.command == 'print_backup':
   printBackupCommand(args.backupFile)
+ else:
+  parser.print_usage()
 
 
 if __name__ == '__main__':
