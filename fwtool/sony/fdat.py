@@ -153,7 +153,7 @@ class AesCrypter(BlockCrypter):
  """Decrypts a block from a 2nd gen firmware image using AES"""
  def __init__(self, key):
   super(AesCrypter, self).__init__(1024)
-  self._cipher = AES.AESCipher(key, AES.MODE_ECB)
+  self._cipher = AES.new(key, AES.MODE_ECB)
 
  def decryptBlock(self, data):
   return self._cipher.decrypt(data)
@@ -166,7 +166,7 @@ class DoubleAesCrypter(AesCrypter):
  """Decrypts a block from a 3rd gen firmware image using AES"""
  def __init__(self, key1, key2):
   super(DoubleAesCrypter, self).__init__(key1)
-  self._cipher2 = AES.AESCipher(key2, AES.MODE_ECB)
+  self._cipher2 = AES.new(key2, AES.MODE_ECB)
 
  def decryptBlock(self, data):
   decrypted = super(DoubleAesCrypter, self).decryptBlock(data)
