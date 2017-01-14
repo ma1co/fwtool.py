@@ -10,7 +10,7 @@ from stat import *
 import yaml
 
 from fwtool import archive, pe, zip
-from fwtool.sony import backup, bootloader, dat, fdat, flash
+from fwtool.sony import backup, bootloader, dat, fdat, flash, wbi
 
 def mkdirs(path):
  try:
@@ -128,6 +128,11 @@ def unpackBootloader(file, outDir, mtime):
   writeYaml([{f.name: {'version': f.version, 'loadaddr': f.loadaddr}} for f in files], yamlFile)
 
 
+def unpackWbi(file, outDir, mtime):
+ print('Extracting warm boot image')
+ writeFileTree((toUnixFile('/0x%08x.dat' % c.physicalAddr, c.contents, mtime) for c in wbi.readWbi(file)), outDir)
+
+
 def unpackCommand(file, outDir):
  """Extracts the input file to the specified directory"""
  mkdirs(outDir)
@@ -151,6 +156,8 @@ def unpackCommand(file, outDir):
   unpackDump(file, outDir, mtime)
  elif bootloader.isBootloader(file):
   unpackBootloader(file, outDir, mtime)
+ elif wbi.isWbi(file):
+  unpackWbi(file, outDir, mtime)
  else:
   raise Exception('Unknown file type!')
 
