@@ -10,7 +10,7 @@ from stat import *
 import yaml
 
 from fwtool import archive, pe, zip
-from fwtool.sony import backup, dat, fdat, flash
+from fwtool.sony import backup, bootloader, dat, fdat, flash
 
 def mkdirs(path):
  try:
@@ -61,7 +61,14 @@ def toUnixFile(path, file, mtime=0):
 def writeYaml(yamlData, file):
  yaml.add_representer(tuple, lambda dumper, data: dumper.represent_list(data))
  yaml.add_representer(dict, lambda dumper, data: dumper.represent_mapping(dumper.DEFAULT_MAPPING_TAG, data, flow_style=False))
- yaml.add_representer(int, lambda dumper, data: dumper.represent_int(hex(data) if data >= 10 else data))
+ representInt = lambda dumper, data: dumper.represent_int('0x%X' % data if data >= 10 else data)
+ yaml.add_representer(int, representInt)
+ try:
+  yaml.add_representer(long, representInt)
+  yaml.add_representer(unicode, lambda dumper, data: dumper.represent_str(str(data)))
+ except NameError:
+  # Python 3
+  pass
  yaml.dump(yamlData, file)
 
 
@@ -113,6 +120,14 @@ def unpackDump(dumpFile, outDir, mtime):
  writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(dumpFile)), outDir)
 
 
+def unpackBootloader(file, outDir, mtime):
+ print('Extracting bootloader partition')
+ files = list(bootloader.readBootloader(file))
+ writeFileTree((toUnixFile('/' + f.name, f.contents, mtime) for f in files), outDir)
+ with open(outDir + '/bootfiles.yaml', 'w') as yamlFile:
+  writeYaml([{f.name: {'version': f.version, 'loadaddr': f.loadaddr}} for f in files], yamlFile)
+
+
 def unpackCommand(file, outDir):
  """Extracts the input file to the specified directory"""
  mkdirs(outDir)
@@ -134,6 +149,8 @@ def unpackCommand(file, outDir):
   fdatConf = unpackFdat(file, outDir, mtime)
  elif flash.isPartitionTable(file):
   unpackDump(file, outDir, mtime)
+ elif bootloader.isBootloader(file):
+  unpackBootloader(file, outDir, mtime)
  else:
   raise Exception('Unknown file type!')
 
