@@ -184,6 +184,7 @@ class DoubleAesCrypter(AesCrypter):
 
 
 _crypters = OrderedDict([
+ ('gen0', lambda: ShaCrypter(constants.shaKey1V0, constants.shaKey2V0)),
  ('gen1', lambda: ShaCrypter(constants.shaKey1, constants.shaKey2)),
  ('gen2', lambda: AesCrypter(constants.aesKeyV2)),
  ('gen3', lambda: DoubleAesCrypter(constants.aesKeyV2, constants.aesKeyV3)),
