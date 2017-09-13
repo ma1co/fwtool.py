@@ -7,8 +7,8 @@ osx_image: xcode9
 before_install:
  # Install python
  - eval "$(pyenv init -)"
- - env PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install 3.5.4
- - pyenv local 3.5.4
+ - env PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install 3.5.3
+ - pyenv local 3.5.3
 
 install:
  # Install dependencies
