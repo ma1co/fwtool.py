@@ -14,7 +14,7 @@ install:
 
  # Log versions
  - python --version
- - pip list
+ - pip list --format=legacy
 
 build: off
 
