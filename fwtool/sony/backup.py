@@ -12,7 +12,7 @@ BackupHeader = Struct('BackupHeader', [
  ('version', Struct.STR % 4),
  ('numSubsystems', Struct.INT32),
 ])
-backupHeaderMagic = 0x82ec0000
+backupHeaderMagic = [0x82ec0000, 0x832c0000]
 
 SubsystemTableEntry = Struct('SubsystemTableEntry', [
  ('numProperties', Struct.INT16),
@@ -43,7 +43,7 @@ BackupProperty = namedtuple('BackupProperty', 'id, attr, data, resetData')
 def readBackup(file):
  header = BackupHeader.unpack(file)
 
- if header.magic != backupHeaderMagic:
+ if header.magic not in backupHeaderMagic:
   raise Exception('Wrong magic')
  if header.version[:2] != b'BK':
   raise Exception('Wrong version number')
