@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 import argparse
+from collections import OrderedDict
 import io
 import os
 import shutil
@@ -74,9 +75,17 @@ def writeYaml(yamlData, file):
   pass
  yaml.dump(yamlData, file)
 
+class OrderedSafeLoader(yaml.SafeLoader):
+ def __init__(self, *args, **kwargs):
+  yaml.SafeLoader.__init__(self, *args, **kwargs)
+  def constructMapping(loader, node):
+   loader.flatten_mapping(node)
+   return OrderedDict(loader.construct_pairs(node))
+  self.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, constructMapping)
+
 def getDevices():
  with open(scriptRoot + '/devices.yml', 'r') as f:
-  return yaml.safe_load(f)
+  return yaml.load(f, OrderedSafeLoader)
 
 
 def unpackInstaller(exeFile, datFile):
