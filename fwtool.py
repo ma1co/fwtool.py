@@ -7,10 +7,13 @@ import io
 import os
 import shutil
 from stat import *
+import sys
 import yaml
 
 from fwtool import archive, pe, zip
 from fwtool.sony import backup, bootloader, dat, fdat, flash, wbi
+
+scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
 def mkdirs(path):
  try:
@@ -70,6 +73,10 @@ def writeYaml(yamlData, file):
   # Python 3
   pass
  yaml.dump(yamlData, file)
+
+def getDevices():
+ with open(scriptRoot + '/devices.yml', 'r') as f:
+  return yaml.safe_load(f)
 
 
 def unpackInstaller(exeFile, datFile):
@@ -165,12 +172,31 @@ def unpackCommand(file, outDir):
   writeYaml({'dat': datConf, 'fdat': fdatConf}, yamlFile)
 
 
-def packCommand(firmwareFile, fsFile, bodyFile, configFile, outDir):
+def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defaultVersion='9.99'):
  mkdirs(outDir)
 
- config = yaml.safe_load(configFile)
- datConf = config['dat']
- fdatConf = config['fdat']
+ if configFile:
+  config = yaml.safe_load(configFile)
+  datConf = config['dat']
+  fdatConf = config['fdat']
+ elif device:
+  devices = getDevices()
+  if device not in devices:
+   raise Exception('Unknown device')
+  config = devices[device]
+
+  datConf = {
+   'crypterName': 'gen%d' % config['gen'],
+   'normalUsbDescriptors': [],
+   'updaterUsbDescriptors': [],
+   'isLens': False,
+  }
+  fdatConf = {
+   'model': config['model'],
+   'region': config['region'] if 'region' in config else 0,
+   'version': defaultVersion,
+   'isAccessory': False,
+  }
 
  if not fsFile and bodyFile:
   print('Packing updater file system')
@@ -220,6 +246,11 @@ def printBackupCommand(file):
   print('')
 
 
+def listDevicesCommand():
+ for device in getDevices():
+  print(device)
+
+
 def main():
  """Command line main"""
  parser = argparse.ArgumentParser()
@@ -228,7 +259,9 @@ def main():
  unpack.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='input file')
  unpack.add_argument('-o', dest='outDir', required=True, help='output directory')
  pack = subparsers.add_parser('pack', description='Pack a firmware file')
- pack.add_argument('-c', dest='configFile', type=argparse.FileType('rb'), required=True, help='configuration file (config.yaml)')
+ packConfig = pack.add_mutually_exclusive_group(required=True)
+ packConfig.add_argument('-c', dest='configFile', type=argparse.FileType('rb'), help='configuration file (config.yaml)')
+ packConfig.add_argument('-d', dest='device', help='device name')
  packBody = pack.add_mutually_exclusive_group()
  packBody.add_argument('-u', dest='updaterFile', type=argparse.FileType('rb'), help='updater file (updater.img)')
  packBody.add_argument('-b', dest='updaterBodyFile', type=argparse.FileType('rb'), help='updater body file (libupdaterbody.so)')
@@ -236,14 +269,17 @@ def main():
  pack.add_argument('-o', dest='outDir', required=True, help='output directory')
  printBackup = subparsers.add_parser('print_backup', description='Print the contents of a Backup.bin file')
  printBackup.add_argument('-f', dest='backupFile', type=argparse.FileType('rb'), required=True, help='backup file')
+ subparsers.add_parser('list_devices', description='List all known devices')
 
  args = parser.parse_args()
  if args.command == 'unpack':
   unpackCommand(args.inFile, args.outDir)
  elif args.command == 'pack':
-  packCommand(args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile, args.outDir)
+  packCommand(args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile, args.device, args.outDir)
  elif args.command == 'print_backup':
   printBackupCommand(args.backupFile)
+ elif args.command == 'list_devices':
+  listDevicesCommand()
  else:
   parser.print_usage()
 
