@@ -1,12 +1,18 @@
 """Decrypter & parser for FDAT firmware images"""
 
 from collections import namedtuple, OrderedDict
-from Crypto.Cipher import AES
-from Crypto.Hash import SHA
-from Crypto.Util.strxor import strxor
 import io
 import re
 import shutil
+
+try:
+ from Cryptodome.Cipher import AES
+ from Cryptodome.Hash import SHA
+ from Cryptodome.Util.strxor import strxor
+except ImportError:
+ from Crypto.Cipher import AES
+ from Crypto.Hash import SHA
+ from Crypto.Util.strxor import strxor
 
 from . import constants
 from ..io import *
