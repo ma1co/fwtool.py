@@ -1,15 +1,18 @@
 # Run os x builds on travis-ci.org
 
+# Use OS X 10.10
 os: osx
 language: generic
-osx_image: xcode9
+osx_image: xcode6.4
+
+env:
+ - HOMEBREW_NO_AUTO_UPDATE=1
 
 before_install:
- # Install python
- - eval "$(pyenv init -)"
- - pyenv install --list
- - env PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install 3.6.1
- - pyenv local 3.6.1
+ # Install Python 3.6.2
+ - brew install https://raw.github.com/Homebrew/homebrew-core/b1f976bb3c76bbb2a8d76cf46fea8b2c2235f631/Formula/python3.rb
+ - python3 -m venv venv
+ - source venv/bin/activate
 
 install:
  # Install dependencies
@@ -21,7 +24,7 @@ install:
 
 script:
  # Run pyinstaller
- - pyinstaller fwtool.spec
+ - python -OO -m PyInstaller fwtool.spec
 
 deploy:
  # Deploy tagged releases

@@ -20,7 +20,7 @@ build: off
 
 after_test:
  # Run pyinstaller
- - pyinstaller fwtool.spec
+ - python -OO -m PyInstaller fwtool.spec
 
 artifacts:
  - path: dist\*
