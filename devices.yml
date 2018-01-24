@@ -18,6 +18,10 @@ DSC-QX10:
 DSC-QX100:
   gen: 2
   model: 0x32020070
+DSC-RX1RM2:
+  gen: 3
+  model: 0x51020035
+  apps: '2.14'
 DSC-RX10:
   gen: 3
   model: 0x41020029
