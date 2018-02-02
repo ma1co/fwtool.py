@@ -18,6 +18,9 @@ DSC-QX10:
 DSC-QX100:
   gen: 2
   model: 0x32020070
+DSC-RX0:
+  gen: 3
+  model: 0x61020010
 DSC-RX1RM2:
   gen: 3
   model: 0x51020035
