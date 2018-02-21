@@ -117,6 +117,10 @@ HDR-AS100V:
   gen: 3
   model: 0x41010011
   apps: '2.5'
+HDR-AS300:
+  gen: 3
+  model: 0x61010035
+  apps: '2.15'
 HDR-AZ1:
   gen: 3
   model: 0x42010031
