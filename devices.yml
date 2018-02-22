@@ -128,6 +128,10 @@ HDR-AZ1:
 HDR-CX560:
   gen: 2
   model: 0x11010005
+HDR-CX680:
+  gen: 3
+  model: 0x61010032
+  region: 1
 HDR-CX700:
   gen: 2
   model: 0x11010005
