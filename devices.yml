@@ -8,6 +8,10 @@ DSC-HX60:
   gen: 3
   model: 0x41020015
   apps: '2.4'
+DSC-HX90:
+  gen: 3
+  model: 0x51020037
+  apps: '2.13'
 DSC-HX400:
   gen: 3
   model: 0x41020040
