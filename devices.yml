@@ -204,6 +204,9 @@ ILCE-QX1:
 NEX-3:
   gen: 1
   model: 0x10300206
+NEX-3N:
+  gen: 2
+  model: 0x31030022
 NEX-5:
   gen: 1
   model: 0x10300205
