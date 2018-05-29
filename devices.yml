@@ -124,6 +124,10 @@ HDR-AS15:
 HDR-AS30V:
   gen: 2
   model: 0x22010050
+HDR-AS50:
+  gen: 3
+  model: 0x61010036
+  apps: '2.15'
 HDR-AS100V:
   gen: 3
   model: 0x41010011
