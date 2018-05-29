@@ -158,6 +158,11 @@ HDR-PJ410:
   gen: 3
   model: 0x51010037
   apps: '2.11'
+HDR-PJ675:
+  gen: 3
+  model: 0x61010032
+  region: 1
+  apps: '2.15'
 ILCA-77M2:
   gen: 3
   model: 0x42030011
