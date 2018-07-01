@@ -81,6 +81,10 @@ FDR-AX40:
   model: 0x61010031
   region: 1
   apps: '2.15'
+FDR-AX45:
+  gen: 3
+  model: 0x71010096
+  region: 1
 FDR-AX53:
   gen: 3
   model: 0x61010031
