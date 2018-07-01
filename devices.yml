@@ -147,6 +147,10 @@ HDR-AZ1:
 HDR-CX560:
   gen: 2
   model: 0x11010005
+HDR-CX625:
+  gen: 3
+  model: 0x61010032
+  apps: '2.15'
 HDR-CX680:
   gen: 3
   model: 0x61010032
