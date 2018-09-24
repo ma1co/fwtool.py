@@ -20,7 +20,7 @@ install:
 
  # Log versions
  - python --version
- - pip list --format=legacy
+ - pip list --format=columns
 
 script:
  # Run pyinstaller
