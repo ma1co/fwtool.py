@@ -181,6 +181,9 @@ HDR-PJ410:
   gen: 3
   model: 0x51010037
   apps: '2.11'
+HDR-PJ540:
+  gen: 3
+  model: 0x41010013
 HDR-PJ675:
   gen: 3
   model: 0x61010032
