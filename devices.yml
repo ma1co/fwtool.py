@@ -4,6 +4,9 @@ DSC-HX5V:
 DSC-HX20:
   gen: 2
   model: 0x21020050
+DSC-HX50:
+  gen: 2
+  model: 0x31020051
 DSC-HX60:
   gen: 3
   model: 0x41020015
