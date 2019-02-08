@@ -13,8 +13,7 @@ import yaml
 
 from fwtool import archive, pe, zip
 from fwtool.sony import backup, bootloader, dat, fdat, flash, wbi
-
-scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
+from fwtool.data import DEVICES_YML
 
 def mkdirs(path):
  try:
@@ -84,7 +83,7 @@ class OrderedSafeLoader(yaml.SafeLoader):
   self.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, constructMapping)
 
 def getDevices():
- with open(scriptRoot + '/devices.yml', 'r') as f:
+ with open(DEVICES_YML, 'r') as f:
   return yaml.load(f, OrderedSafeLoader)
 
 

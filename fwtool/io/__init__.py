@@ -11,6 +11,12 @@ class FilePart(object):
   self.size = size
   self.pos = 0
 
+ def seekable(self):
+  if self.file:
+   return self.file.seekable()
+  else:
+   return False
+
  def seek(self, pos, ref=os.SEEK_SET):
   if ref == os.SEEK_SET:
    self.pos = pos
