@@ -197,6 +197,9 @@ HDR-PJ675:
   model: 0x61010032
   region: 1
   apps: '2.15'
+HDR-PJ810:
+  gen: 3
+  model: 0x41010032
 ILCA-77M2:
   gen: 3
   model: 0x42030011
