@@ -42,5 +42,5 @@ def readTar(file):
    mode = _convertFileType(member.type) | member.mode,
    uid = member.uid,
    gid = member.gid,
-   contents = tar.extractfile(member),
+   contents = tar.extractfile(member) if not member.issym() else None,
   )

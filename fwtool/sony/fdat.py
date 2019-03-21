@@ -189,11 +189,36 @@ class DoubleAesCrypter(AesCrypter):
   return super(DoubleAesCrypter, self).encryptBlock(encrypted)
 
 
+class AesCbcCrypter(AesCrypter):
+ """Decrypts a block from a 4th gen firmware image using AES CBC"""
+ def __init__(self, key1, key2):
+  super(AesCbcCrypter, self).__init__(key1)
+  self._key = key2
+
+ def decryptBlock(self, data):
+  if self.isFirstBlock:
+   self._cipher2 = AES.new(self._key, AES.MODE_CBC, self._iv)
+   return super(AesCbcCrypter, self).decryptBlock(data[:512]) + self._cipher2.decrypt(data[512:])
+  else:
+   return self._cipher2.decrypt(data)
+
+ def decrypt(self, file):
+  file.seek(-0x110, 2)
+  size = file.tell()
+  self._iv = file.read(0x10)
+  file = FilePart(file, 0, size)
+  return super(AesCbcCrypter, self).decrypt(file)
+
+ def encrypt(self, file):
+  raise Exception('Encryption not supported')
+
+
 _crypters = OrderedDict([
  ('gen0', lambda: ShaCrypter(constants.shaKey1V0, constants.shaKey2V0)),
  ('gen1', lambda: ShaCrypter(constants.shaKey1, constants.shaKey2)),
  ('gen2', lambda: AesCrypter(constants.aesKeyV2)),
  ('gen3', lambda: DoubleAesCrypter(constants.aesKeyV2, constants.aesKeyV3)),
+ ('gen4', lambda: AesCbcCrypter(constants.aesKeyV2, constants.aesKeyV4)),
 ])
 
 
