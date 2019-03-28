@@ -192,6 +192,11 @@ HDR-PJ410:
 HDR-PJ540:
   gen: 3
   model: 0x41010013
+HDR-PJ670:
+  gen: 3
+  model: 0x51010036
+  region: 1
+  apps: '2.11'
 HDR-PJ675:
   gen: 3
   model: 0x61010032
