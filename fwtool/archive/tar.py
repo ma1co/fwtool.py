@@ -8,11 +8,10 @@ from ..util import *
 
 TarHeader = Struct('TarHeader', [
  ('...', 257),
- ('magic', Struct.STR % 6),
- ('version', Struct.STR % 2),
+ ('magic', Struct.STR % 8),
  ('...', 235),
 ])
-tarHeaderMagic = b'ustar\0'
+tarHeaderMagic = [b'ustar\x0000', b'ustar  \0']
 
 def _convertFileType(type):
  return {
@@ -28,7 +27,7 @@ def _convertFileType(type):
 def isTar(file):
  """Returns true if the file provided is a tar file"""
  header = TarHeader.unpack(file)
- return header and header.magic == tarHeaderMagic
+ return header and header.magic in tarHeaderMagic
 
 def readTar(file):
  """Unpacks a .tar file and returns a the contained files"""

@@ -12,7 +12,7 @@ import sys
 import yaml
 
 from fwtool import archive, pe, zip
-from fwtool.sony import backup, bootloader, dat, fdat, flash, wbi
+from fwtool.sony import backup, bootloader, dat, fdat, flash, msfirm, wbi
 
 scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
@@ -131,6 +131,11 @@ def unpackFdat(fdatFile, outDir, mtime):
  }
 
 
+def unpackMsFirm(file, outDir):
+ print('Decrypting firmware image')
+ writeFileTree(msfirm.readMsFirm(file), outDir)
+
+
 def unpackDump(dumpFile, outDir, mtime):
  print('Extracting partitions')
  writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(dumpFile)), outDir)
@@ -168,6 +173,8 @@ def unpackCommand(file, outDir):
    fdatConf = unpackFdat(fdatFile, outDir, mtime)
  elif fdat.isFdat(file):
   fdatConf = unpackFdat(file, outDir, mtime)
+ elif msfirm.isMsFirm(file):
+  unpackMsFirm(file, outDir)
  elif flash.isPartitionTable(file):
   unpackDump(file, outDir, mtime)
  elif bootloader.isBootloader(file):
