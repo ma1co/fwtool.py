@@ -15,6 +15,9 @@ DSC-HX90:
   gen: 3
   model: 0x51020037
   apps: '2.13'
+DSC-HX350:
+  gen: 3
+  model: 0x41020023
 DSC-HX400:
   gen: 3
   model: 0x41020040
