@@ -223,33 +223,46 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defa
    'isAccessory': False,
   }
 
+ isMsFirm = datConf and datConf['crypterName'] == 'msfirm'
+
  if not fsFile and bodyFile:
   print('Packing updater file system')
   fsFile = open(outDir + '/updater_packed.img', 'w+b')
-  archive.cramfs.writeCramfs([toUnixFile('/bodylib/libupdaterbody.so', bodyFile)], fsFile)
+  path = '/bodylib/libupdaterbody.so' if not isMsFirm else '/BodyUdtr.sh'
+  archive.cramfs.writeCramfs([toUnixFile(path, bodyFile)], fsFile)
 
  if fdatConf:
   print('Creating firmware image')
   with open(outDir + '/firmware_packed.fdat', 'w+b') as fdatFile:
-   fdat.writeFdat(fdat.FdatFile(
-    model = fdatConf['model'],
-    region = fdatConf['region'],
-    version = fdatConf['version'],
-    isAccessory = fdatConf['isAccessory'],
-    firmware = firmwareFile if firmwareFile else io.BytesIO(),
-    fs = fsFile if fsFile else io.BytesIO(),
-   ), fdatFile)
+   if not isMsFirm:
+    fdat.writeFdat(fdat.FdatFile(
+     model = fdatConf['model'],
+     region = fdatConf['region'],
+     version = fdatConf['version'],
+     isAccessory = fdatConf['isAccessory'],
+     firmware = firmwareFile if firmwareFile else io.BytesIO(),
+     fs = fsFile if fsFile else io.BytesIO(),
+    ), fdatFile)
 
-   if datConf:
-    print('Encrypting firmware image')
-    encrypted = fdat.encryptFdat(fdatFile, datConf['crypterName'])
-    with open(outDir + '/firmware_packed.dat', 'w+b') as datFile:
-     dat.writeDat(dat.DatFile(
-      normalUsbDescriptors = datConf['normalUsbDescriptors'],
-      updaterUsbDescriptors = datConf['updaterUsbDescriptors'],
-      isLens = datConf['isLens'],
-      firmwareData = encrypted,
-     ), datFile)
+    if datConf:
+     print('Encrypting firmware image')
+     encrypted = fdat.encryptFdat(fdatFile, datConf['crypterName'])
+     with open(outDir + '/firmware_packed.dat', 'w+b') as datFile:
+      dat.writeDat(dat.DatFile(
+       normalUsbDescriptors = datConf['normalUsbDescriptors'],
+       updaterUsbDescriptors = datConf['updaterUsbDescriptors'],
+       isLens = datConf['isLens'],
+       firmwareData = encrypted,
+      ), datFile)
+
+   else:
+    msfirm.writeMsFirm(msfirm.MsFirmFile(
+     model = fdatConf['model'],
+     region = fdatConf['region'],
+     version = fdatConf['version'],
+     fs = fsFile if fsFile else io.BytesIO(),
+     files = [toUnixFile('firmware.dat', firmwareFile)] if firmwareFile else [],
+    ), fdatFile)
 
 
 def printHexDump(data, n=16, indent=0):
