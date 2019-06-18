@@ -133,7 +133,15 @@ def unpackFdat(fdatFile, outDir, mtime):
 
 def unpackMsFirm(file, outDir):
  print('Decrypting firmware image')
- writeFileTree(msfirm.readMsFirm(file), outDir)
+ msFirmContents = msfirm.readMsFirm(file)
+
+ writeFileTree(msFirmContents.files, outDir)
+
+ return {
+  'model': msFirmContents.model,
+  'region': msFirmContents.region,
+  'version': msFirmContents.version,
+ }
 
 
 def unpackDump(dumpFile, outDir, mtime):
@@ -174,7 +182,8 @@ def unpackCommand(file, outDir):
  elif fdat.isFdat(file):
   fdatConf = unpackFdat(file, outDir, mtime)
  elif msfirm.isMsFirm(file):
-  unpackMsFirm(file, outDir)
+  datConf = {'crypterName': 'msfirm'}
+  fdatConf = unpackMsFirm(file, outDir)
  elif flash.isPartitionTable(file):
   unpackDump(file, outDir, mtime)
  elif bootloader.isBootloader(file):

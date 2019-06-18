@@ -1,5 +1,6 @@
 """Decrypter & parser for very old firmware files which had to be copied to a memory stick"""
 
+from collections import namedtuple
 from stat import *
 import io
 import re
@@ -13,6 +14,9 @@ except ImportError:
 
 from . import constants
 from .. import archive
+
+
+MsFirmFile = namedtuple('MsFirmFile', 'model, region, version, fs, files')
 
 
 def _calcHash(data):
@@ -76,7 +80,7 @@ def isMsFirm(file):
 
 def readMsFirm(file):
  data = _decrypt(file, 0, 0x5000)
- yield _toUnixFile('cntent.dat', data)
+ contentFile = _toUnixFile('cntent.dat', data)
 
  sections = _parseContents(data.decode('ascii'))
  checksum = int(sections[1]['chksum'], 16)
@@ -87,9 +91,21 @@ def readMsFirm(file):
  if len(sections) - 3 != total:
   raise Exception('Invalid number of files')
 
+ files = []
  for i, f in enumerate(sections[3:]):
   name = f['name']
   offset = int(f['offset'], 16)
   size = int(f['size'], 16)
   data = _decrypt(file, offset + (i + 1) * 0x80, size)
-  yield _toUnixFile(name, data)
+  files.append(_toUnixFile(name, data))
+
+ header = _parseContents(files[0].contents.read().decode('ascii'))
+ files[0].contents.seek(0)
+ version = int(header[0]['ver'], 16)
+ return MsFirmFile(
+  version = '%x.%02x' % (version >> 8, version & 0xff),
+  model = int(header[1]['model'], 16),
+  region = int(header[2]['region'], 16),
+  fs = files[2],
+  files = [contentFile] + files,
+ )
