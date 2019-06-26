@@ -122,6 +122,7 @@ def _dumpHeader(model, region, version):
   'model=%08x' % model,
   '[region]',
   'region=%08x' % region,
+  '',
  ]).encode('ascii')
 
 
