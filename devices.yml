@@ -1,6 +1,9 @@
 DSC-HX5V:
   gen: 0
   model: 0x10210105
+DSC-HX9V:
+  gen: 2
+  model: 0x11020062
 DSC-HX20:
   gen: 2
   model: 0x21020050
