@@ -204,6 +204,9 @@ HDR-PJ410:
 HDR-PJ540:
   gen: 3
   model: 0x41010013
+HDR-PJ590V:
+  gen: 2
+  model: 0x21010001
 HDR-PJ670:
   gen: 3
   model: 0x51010036
