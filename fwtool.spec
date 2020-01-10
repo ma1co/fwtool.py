@@ -7,7 +7,7 @@ suffix = {'linux2': '-linux', 'win32': '-win', 'darwin': '-osx'}
 output = 'fwtool-' + subprocess.check_output(['git', 'describe', '--always', '--tags']).decode('ascii').strip() + suffix.get(sys.platform, '')
 
 # Analyze files
-a = Analysis(['fwtool.py'], excludes=['bz2', 'cffi', 'Crypto', 'doctest', 'encodings.idna', 'lzma', 'plistlib', 'py_compile', 'socket', 'tempfile', 'tracemalloc'], datas=[('devices.yml', '.')])
+a = Analysis(['fwtool.py'], excludes=['bz2', 'cffi', 'Crypto', 'doctest', 'encodings.idna', 'lzma', 'plistlib', 'py_compile', 'socket', 'tracemalloc'], datas=[('devices.yml', '.')])
 
 # Generate executable
 pyz = PYZ(a.pure, a.zipped_data)
