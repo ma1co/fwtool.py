@@ -76,6 +76,9 @@ DSC-RX100M5:
   gen: 3
   model: 0x61020023
   apps: '2.16'
+DSC-TX7:
+  gen: 2
+  model: 0x21020000
 DSC-WX5:
   gen: 0
   model: 0x10210124
