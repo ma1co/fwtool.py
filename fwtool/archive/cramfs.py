@@ -141,7 +141,7 @@ def writeCramfs(files, outFile):
    else:
     offset = 0
     size = 0
-  else:
+  elif S_ISREG(item.file.mode) or S_ISLNK(item.file.mode):
    offset = outFile.tell()
    item.file.contents.seek(0, os.SEEK_END)
    size = item.file.contents.tell()
@@ -158,6 +158,9 @@ def writeCramfs(files, outFile):
     outFile.write(dump32le(o))
     outFile.seek(o)
    _pad(outFile, 4)
+  else:
+   offset = 0
+   size = item.file.size
 
   o = outFile.tell()
   outFile.seek(item.inodeOffset)
