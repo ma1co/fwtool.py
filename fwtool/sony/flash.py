@@ -1,6 +1,8 @@
 """Parser for the SDM partition table at the beginning of /dev/nflasha"""
 # Kernel source: fs/partitions/sdm_partition_table.h
 
+import shutil
+
 from ..io import *
 from ..util import *
 
@@ -36,3 +38,30 @@ def readPartitionTable(file):
   partition = SdmPartition.unpack(file, SdmPartitionTableHeader.size + i*SdmPartition.size)
   if partition.flag & 1:
    yield i+1, FilePart(file, partition.start, partition.size)
+
+def writePartitions(partitions, outFile):
+ pad = 0x1000
+
+ outFile.write(SdmPartitionTableHeader.pack(
+  magic = sdmPartitionTableHeaderMagic,
+  version = sdmPartitionTableHeaderVersion,
+  nPartition = len(partitions),
+ ))
+ outFile.write(b'\xff' * (pad - SdmPartitionTableHeader.size))
+
+ parts = []
+ for f in partitions:
+  f.seek(0)
+  shutil.copyfileobj(f, outFile)
+  parts.append((outFile.tell() - f.tell(), f.tell()))
+  if f.tell() % pad:
+   outFile.write(b'\xff' * (pad - f.tell() % pad))
+
+ outFile.seek(SdmPartitionTableHeader.size)
+ for o, s in parts:
+  outFile.write(SdmPartition.pack(
+   start = o,
+   size = s,
+   type = 1,
+   flag = 0xffffffff,
+  ))
