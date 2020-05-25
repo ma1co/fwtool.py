@@ -1,5 +1,8 @@
 """A parser for FAT file system images"""
 
+import io
+import posixpath
+import shutil
 from stat import *
 import time
 
@@ -43,7 +46,9 @@ FatDirEntry = Struct('FatDirEntry', [
 VfatDirEntry = Struct('VfatDirEntry', [
  ('sequence', Struct.INT8),
  ('name1', Struct.STR % 10),
- ('...', 3),
+ ('attr', Struct.INT8),
+ ('...', 1),
+ ('checksum', Struct.INT8),
  ('name2', Struct.STR % 12),
  ('...', 2),
  ('name3', Struct.STR % 4),
@@ -128,3 +133,121 @@ def readFat(file):
  file.seek(rootOffset)
  for f in readDir(file.read(dataOffset - rootOffset)):
   yield f
+
+
+def writeFat(files, size, outFile):
+ files = {f.path: f for f in files}
+ tree = {'': set()}
+ for path in files:
+  while path != '':
+   parent = posixpath.dirname(path).rstrip('/')
+   tree.setdefault(parent, set()).add(path)
+   path = parent
+
+ sectorSize = 0x200
+ clusterSize = 0x4000
+
+ sectors = size // sectorSize
+ fatSize = (size // clusterSize + 1) // 2 * 3
+ fatSectors = (fatSize + sectorSize - 1) // sectorSize
+
+ outFile.write(FatHeader.pack(
+  jump = b'\xeb\0\x90',
+  oemName = 8*b'\0',
+  bytesPerSector = sectorSize,
+  sectorsPerCluster = clusterSize // sectorSize,
+  reservedSectors = 1,
+  fatCopies = 1,
+  rootEntries = clusterSize // FatDirEntry.size,
+  sectors = sectors,
+  mediaDescriptor = 0xf8,
+  sectorsPerFat = fatSectors,
+  extendedSignature = fatHeaderExtendedSignature,
+  serialNumber = 0,
+  volumeLabel = 11*b' ',
+  fsType = b'FAT12   ',
+  signature = fatHeaderSignature,
+ ))
+ for i in range(sectors - 1):
+  outFile.write(sectorSize * b'\0')
+
+ fatOffset = sectorSize
+ rootOffset = fatOffset + fatSectors * sectorSize
+ dataOffset = rootOffset + clusterSize
+
+ clusters = [0xff8, 0xfff]
+ def writeData(f):
+  f.seek(0)
+  outFile.seek(dataOffset + (len(clusters) - 2) * clusterSize)
+  shutil.copyfileobj(f, outFile)
+  nc = (f.tell() + clusterSize - 1) // clusterSize
+  for i in range(nc):
+   clusters.append(len(clusters) + 1 if i < nc-1 else 0xfff)
+  return (len(clusters)-nc if nc else 0), f.tell()
+
+ def dirEntries(pc, c):
+  return FatDirEntry.pack(
+    name = b'.       ',
+    ext = b'   ',
+    attr = 0x10,
+    time = 0,
+    date = 0,
+    cluster = c,
+    size = 0,
+   ) + FatDirEntry.pack(
+    name = b'..      ',
+    ext = b'   ',
+    attr = 0x10,
+    time = 0,
+    date = 0,
+    cluster = pc,
+    size = 0,
+   )
+
+ dirs = {}
+ def writeDir(path):
+  data = io.BytesIO()
+  if path != '':
+   data.write(dirEntries(0, 0))
+  for p in tree.get(path, set()):
+   file = files.get(p, UnixFile(p, 0, 0, S_IFDIR | 0o775, 0, 0, None))
+   c, s = writeData(file.contents if not S_ISDIR(file.mode) else writeDir(file.path))
+   if S_ISDIR(file.mode):
+    dirs[file.path] = c
+   fn = posixpath.basename(file.path) + '\0'
+   vfatEntries = [fn[o:o+13] for o in range(0, len(fn), 13)]
+   for i, n in list(enumerate(vfatEntries))[::-1]:
+    n = n.encode('utf-16le').ljust(26, b'\xff')
+    data.write(VfatDirEntry.pack(
+     sequence = i + 1 + (0x40 if i == len(vfatEntries)-1 else 0),
+     name1 = n[:10],
+     attr = 0x0f,
+     checksum = 0x1b,
+     name2 = n[10:22],
+     name3 = n[22:],
+    ))
+   t = time.localtime(file.mtime)
+   data.write(FatDirEntry.pack(
+    name = b'0       ',
+    ext = b'   ',
+    attr = 0x10 if S_ISDIR(file.mode) else 0,
+    time = (t.tm_hour << 11) + (t.tm_min << 5) + t.tm_sec // 2,
+    date = (max(t.tm_year - 1980, 0) << 9) + (t.tm_mon << 5) + t.tm_mday,
+    cluster = c,
+    size = s if not S_ISDIR(file.mode) else 0,
+   ))
+  return data
+
+ root = writeDir('')
+ root.seek(0)
+ outFile.seek(rootOffset)
+ shutil.copyfileobj(root, outFile)
+
+ for p, c in dirs.items():
+  parent = posixpath.split(p)[0]
+  outFile.seek(dataOffset + (c - 2) * clusterSize)
+  outFile.write(dirEntries(dirs[parent] if parent != '/' else 0, c))
+
+ outFile.seek(fatOffset)
+ for i in range(0, len(clusters), 2):
+  outFile.write(dump32le(clusters[i] + ((clusters[i+1] << 12) if i+1 < len(clusters) else 0))[:3])
