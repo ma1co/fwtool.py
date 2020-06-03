@@ -214,6 +214,14 @@ def writeFat(files, size, outFile):
    c, s = writeData(file.contents if not S_ISDIR(file.mode) else writeDir(file.path))
    if S_ISDIR(file.mode):
     dirs[file.path] = c
+
+   name, ext = (posixpath.basename(file.path).upper() + '.').split('.', 1)
+   name = name[:8].ljust(8, ' ').encode('ascii')
+   ext = ext[:3].ljust(3, ' ').encode('ascii')
+   sum = 0
+   for chr in (name + ext):
+    sum = (((sum & 1) << 7) + (sum >> 1) + chr) & 0xff
+
    fn = posixpath.basename(file.path) + '\0'
    vfatEntries = [fn[o:o+13] for o in range(0, len(fn), 13)]
    for i, n in list(enumerate(vfatEntries))[::-1]:
@@ -222,14 +230,15 @@ def writeFat(files, size, outFile):
      sequence = i + 1 + (0x40 if i == len(vfatEntries)-1 else 0),
      name1 = n[:10],
      attr = 0x0f,
-     checksum = 0x1b,
+     checksum = sum,
      name2 = n[10:22],
      name3 = n[22:],
     ))
+
    t = time.localtime(file.mtime)
    data.write(FatDirEntry.pack(
-    name = b'0       ',
-    ext = b'   ',
+    name = name,
+    ext = ext,
     attr = 0x10 if S_ISDIR(file.mode) else 0,
     time = (t.tm_hour << 11) + (t.tm_min << 5) + t.tm_sec // 2,
     date = (max(t.tm_year - 1980, 0) << 9) + (t.tm_mon << 5) + t.tm_mday,
