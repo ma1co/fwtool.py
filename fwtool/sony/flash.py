@@ -40,22 +40,23 @@ def readPartitionTable(file):
    yield i+1, FilePart(file, partition.start, partition.size)
 
 def writePartitions(partitions, outFile):
- pad = 0x1000
+ sectorSize = 0x200
 
  outFile.write(SdmPartitionTableHeader.pack(
   magic = sdmPartitionTableHeaderMagic,
   version = sdmPartitionTableHeaderVersion,
   nPartition = len(partitions),
  ))
- outFile.write(b'\xff' * (pad - SdmPartitionTableHeader.size))
+ outFile.write(b'\xff' * (sectorSize - SdmPartitionTableHeader.size))
 
  parts = []
  for f in partitions:
+  o = outFile.tell()
   f.seek(0)
   shutil.copyfileobj(f, outFile)
-  parts.append((outFile.tell() - f.tell(), f.tell()))
-  if f.tell() % pad:
-   outFile.write(b'\xff' * (pad - f.tell() % pad))
+  if outFile.tell() % sectorSize:
+   outFile.write(b'\xff' * (sectorSize - outFile.tell() % sectorSize))
+  parts.append((o, outFile.tell() - o))
 
  outFile.seek(SdmPartitionTableHeader.size)
  for o, s in parts:
