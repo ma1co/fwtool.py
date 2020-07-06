@@ -82,6 +82,9 @@ DSC-TX7:
 DSC-WX5:
   gen: 0
   model: 0x10210124
+DSC-WX80:
+  gen: 2
+  model: 0x31020021
 DSC-WX220:
   gen: 3
   model: 0x41020021
