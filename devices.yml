@@ -91,6 +91,10 @@ DSC-WX220:
 DSC-WX350:
   gen: 3
   model: 0x41020013
+DSC-WX500:
+  gen: 3
+  model: 0x51020030
+  apps: '2.13'
 FDR-AX30:
   gen: 3
   model: 0x51010031
