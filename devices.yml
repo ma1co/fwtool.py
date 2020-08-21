@@ -21,6 +21,9 @@ DSC-HX90:
 DSC-HX200V:
   gen: 2
   model: 0x21020060
+DSC-HX300:
+  gen: 2
+  model: 0x31020050
 DSC-HX350:
   gen: 3
   model: 0x41020023
