@@ -242,6 +242,9 @@ HDR-PJ800:
 HDR-PJ810:
   gen: 3
   model: 0x41010032
+HDR-TD10:
+  gen: 2
+  model: 0x11010011
 ILCA-77M2:
   gen: 3
   model: 0x42030011
