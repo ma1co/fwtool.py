@@ -219,6 +219,9 @@ HDR-CX900:
 HDR-MV1:
   gen: 2
   model: 0x31010090
+HDR-PJ240:
+  gen: 3
+  model: 0x41010016
 HDR-PJ410:
   gen: 3
   model: 0x51010037
