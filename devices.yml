@@ -245,6 +245,9 @@ HDR-PJ675:
 HDR-PJ760V:
   gen: 2
   model: 0x21010031
+HDR-PJ790V:
+  gen: 2
+  model: 0x31010060
 HDR-PJ800:
   gen: 3
   model: 0x41010032
