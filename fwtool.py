@@ -11,7 +11,8 @@ from stat import *
 import sys
 import yaml
 
-from fwtool import archive, pe, zip
+from fwtool import archive, lzh, pe, zip
+from fwtool.io import *
 from fwtool.sony import backup, bootloader, dat, fdat, flash, msfirm, wbi
 
 scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
@@ -91,10 +92,16 @@ def getDevices():
 def unpackInstaller(exeFile, datFile):
  print('Extracting installer binary')
  exeSectors = pe.readExe(exeFile)
- zipFile = exeSectors['_winzip_']
- zippedFiles = dict((file.path, file) for file in zip.readZip(zipFile))
-
- zippedDatFile = zippedFiles[dat.findDat(zippedFiles.keys())]
+ if '_winzip_' in exeSectors:
+  zipFile = exeSectors['_winzip_']
+  zippedFiles = dict((file.path, file) for file in zip.readZip(zipFile))
+  zippedDatFile = zippedFiles[dat.findDat(zippedFiles.keys())]
+ else:
+  last = next(reversed(exeSectors.values()))
+  lzhFile = FilePart(exeFile, last.offset + last.size)
+  if not lzh.isLzh(lzhFile):
+   raise Exception('Unknown exe file')
+  zippedDatFile = lzh.readLzh(lzhFile)
  shutil.copyfileobj(zippedDatFile.contents, datFile)
 
  return zippedDatFile.mtime
@@ -171,11 +178,10 @@ def unpackCommand(file, outDir):
  fdatConf = None
 
  if pe.isExe(file):
-  with open(outDir + '/firmware.dat', 'w+b') as datFile, open(outDir + '/firmware.fdat', 'w+b') as fdatFile:
-   mtime = unpackInstaller(file, datFile)
-   datConf = unpackDat(datFile, fdatFile)
-   fdatConf = unpackFdat(fdatFile, outDir, mtime)
- elif dat.isDat(file):
+  datFile = open(outDir + '/firmware.dat', 'w+b')
+  mtime = unpackInstaller(file, datFile)
+  file = datFile
+ if dat.isDat(file):
   with open(outDir + '/firmware.fdat', 'w+b') as fdatFile:
    datConf = unpackDat(file, fdatFile)
    fdatConf = unpackFdat(fdatFile, outDir, mtime)
