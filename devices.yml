@@ -203,6 +203,11 @@ HDR-CX625:
   gen: 3
   model: 0x61010032
   apps: '2.15'
+HDR-CX670:
+  gen: 3
+  model: 0x51010036
+  region: 1
+  apps: '2.11'
 HDR-CX675:
   gen: 3
   model: 0x61010032
