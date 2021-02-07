@@ -91,6 +91,9 @@ DSC-WX80:
 DSC-WX100:
   gen: 2
   model: 0x21020010
+DSC-WX200:
+  gen: 2
+  model: 0x31020030
 DSC-WX220:
   gen: 3
   model: 0x41020021
