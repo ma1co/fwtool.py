@@ -1,5 +1,6 @@
 """A simple parser for tar archives"""
 
+import io
 from stat import *
 import tarfile
 
@@ -41,5 +42,5 @@ def readTar(file):
    mode = _convertFileType(member.type) | member.mode,
    uid = member.uid,
    gid = member.gid,
-   contents = tar.extractfile(member) if not member.issym() else None,
+   contents = tar.extractfile(member) if not member.issym() else io.BytesIO(member.linkname.encode('latin1')),
   )
