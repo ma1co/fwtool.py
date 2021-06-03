@@ -36,7 +36,9 @@ FatDirEntry = Struct('FatDirEntry', [
  ('name', Struct.STR % 8),
  ('ext', Struct.STR % 3),
  ('attr', Struct.INT8),
- ('...', 10),
+ ('...', 1),
+ ('ctimeCs', Struct.INT8),
+ ('...', 8),
  ('time', Struct.INT16),
  ('date', Struct.INT16),
  ('cluster', Struct.INT16),
@@ -102,6 +104,7 @@ def readFat(file):
        name += '.' + ext
 
      if name != '.' and name != '..':
+      isLink = (entry.attr & 0x04) and (entry.ctimeCs & 0xe1) == 0x21
       isDir = entry.attr & 0x10
 
       def generateChunks(cluster=entry.cluster, size=entry.size, isDir=isDir):
@@ -118,7 +121,7 @@ def readFat(file):
        path = path + '/' + name,
        size = entry.size,
        mtime = time.mktime((1980 + (entry.date >> 9), (entry.date >> 5) & 0xf, entry.date & 0x1f, entry.time >> 11, (entry.time >> 5) & 0x3f, (entry.time & 0x1f) * 2, -1, -1, -1)),
-       mode = S_IFDIR if isDir else S_IFREG,
+       mode = S_IFDIR if isDir else S_IFLNK if isLink else S_IFREG,
        uid = 0,
        gid = 0,
        contents = contents if not isDir else None,
@@ -190,6 +193,7 @@ def writeFat(files, size, outFile):
     name = b'.       ',
     ext = b'   ',
     attr = 0x10,
+    ctimeCs = 0,
     time = 0,
     date = 0,
     cluster = c,
@@ -198,6 +202,7 @@ def writeFat(files, size, outFile):
     name = b'..      ',
     ext = b'   ',
     attr = 0x10,
+    ctimeCs = 0,
     time = 0,
     date = 0,
     cluster = pc,
@@ -239,7 +244,8 @@ def writeFat(files, size, outFile):
    data.write(FatDirEntry.pack(
     name = name,
     ext = ext,
-    attr = 0x10 if S_ISDIR(file.mode) else 0,
+    attr = 0x10 if S_ISDIR(file.mode) else 0x04 if S_ISLNK(file.mode) else 0,
+    ctimeCs = 0x21 if S_ISLNK(file.mode) else 0,
     time = (t.tm_hour << 11) + (t.tm_min << 5) + t.tm_sec // 2,
     date = (max(t.tm_year - 1980, 0) << 9) + (t.tm_mon << 5) + t.tm_mday,
     cluster = c,
