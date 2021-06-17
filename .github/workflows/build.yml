@@ -1,0 +1,40 @@
+name: Build
+on: push
+jobs:
+  PyInstaller:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016, macos-10.15]
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Build
+      run: |
+        python -OO -m PyInstaller fwtool.spec
+    - name: Test
+      run: |
+        dist/fwtool* -h
+    - name: Upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ runner.os }} binaries
+        path: dist/*
+    - name: Release
+      if: ${{ startsWith(github.ref, 'refs/tags/') && runner.os != 'Windows' }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        tag="${GITHUB_REF##*/}"
+        assets="$(find dist/* -exec echo -a {} \;)"
+        hub release create $assets -m "$tag" "$tag" || hub release edit $assets -m "" "$tag"
