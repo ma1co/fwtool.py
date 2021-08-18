@@ -215,6 +215,8 @@ class AesCbcCrypter(AesCrypter):
 _crypters = OrderedDict([
  ('CXD4115',      lambda: ShaCrypter(constants.key_cxd4115)),
  ('CXD4115_ilc',  lambda: ShaCrypter(constants.key_cxd4115_ilc)),
+ ('CXD4120',      lambda: ShaCrypter(constants.key_cxd4120)),
+ ('CXD4120_pro',  lambda: ShaCrypter(constants.key_cxd4120_pro)),
  ('CXD4132',      lambda: AesCrypter(constants.key_cxd4132)),
  ('CXD90014',     lambda: DoubleAesCrypter(constants.key_aes, constants.key_cxd90014)),
  ('CXD90045',     lambda: AesCbcCrypter(constants.key_aes, constants.key_cxd90045)),

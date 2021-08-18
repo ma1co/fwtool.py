@@ -275,6 +275,9 @@ HDR-PJ810:
 HDR-TD10:
   arch: CXD4132
   model: 0x11010011
+HDR-XR550:
+  arch: CXD4120
+  model: 0x10040005
 ILCA-77M2:
   arch: CXD90014
   model: 0x42030011
