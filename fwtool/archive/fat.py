@@ -88,7 +88,9 @@ def readFat(file):
   vfatName = b''
   while entries[offset:offset+1] != b'\0':
    entry = FatDirEntry.unpack(entries, offset)
-   if entry.name[0:1] != b'\xe5':
+   if entry.name[0:1] == b'\xe5':
+    vfatName = b''
+   else:
     if entry.attr == 0x0f:
      # VFAT
      vfatEntry = VfatDirEntry.unpack(entries, offset)
