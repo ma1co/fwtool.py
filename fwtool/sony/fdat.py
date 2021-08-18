@@ -137,17 +137,16 @@ class BlockCrypter(Crypter):
 
 class ShaCrypter(BlockCrypter):
  """Decrypts a block from a 1st gen firmware image using sha1 digests"""
- def __init__(self, key1, key2):
+ def __init__(self, key):
   super(ShaCrypter, self).__init__(1000)
-  self._key1 = key1
-  self._key2 = key2
+  self._key = key
 
  def decryptBlock(self, data):
   if self.isFirstBlock:
-   self._digest = self._key1
+   self._digest = self._key[:20]
   xorKey = io.BytesIO()
   while xorKey.tell() < len(data):
-   self._digest = SHA.new(self._digest + self._key2).digest()
+   self._digest = SHA.new(self._digest + self._key[20:40]).digest()
    xorKey.write(self._digest)
   return strxor(data, xorKey.getvalue())
 
@@ -214,11 +213,11 @@ class AesCbcCrypter(AesCrypter):
 
 
 _crypters = OrderedDict([
- ('gen0', lambda: ShaCrypter(constants.shaKey1V0, constants.shaKey2V0)),
- ('gen1', lambda: ShaCrypter(constants.shaKey1, constants.shaKey2)),
- ('gen2', lambda: AesCrypter(constants.aesKeyV2)),
- ('gen3', lambda: DoubleAesCrypter(constants.aesKeyV2, constants.aesKeyV3)),
- ('gen4', lambda: AesCbcCrypter(constants.aesKeyV2, constants.aesKeyV4)),
+ ('CXD4115',      lambda: ShaCrypter(constants.key_cxd4115)),
+ ('CXD4115_ilc',  lambda: ShaCrypter(constants.key_cxd4115_ilc)),
+ ('CXD4132',      lambda: AesCrypter(constants.key_cxd4132)),
+ ('CXD90014',     lambda: DoubleAesCrypter(constants.key_aes, constants.key_cxd90014)),
+ ('CXD90045',     lambda: AesCbcCrypter(constants.key_aes, constants.key_cxd90045)),
 ])
 
 

@@ -188,7 +188,7 @@ def unpackCommand(file, outDir):
  elif fdat.isFdat(file):
   fdatConf = unpackFdat(file, outDir, mtime)
  elif msfirm.isMsFirm(file):
-  datConf = {'crypterName': 'msfirm'}
+  datConf = {'crypterName': 'CXD4108'}
   fdatConf = unpackMsFirm(file, outDir)
  elif flash.isPartitionTable(file):
   unpackDump(file, outDir, mtime)
@@ -217,7 +217,7 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defa
   config = devices[device]
 
   datConf = {
-   'crypterName': 'gen%d' % config['gen'],
+   'crypterName': config['arch'] + ('_' + config['key'] if 'key' in config else ''),
    'normalUsbDescriptors': [],
    'updaterUsbDescriptors': [],
    'isLens': False,
@@ -229,7 +229,7 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defa
    'isAccessory': False,
   }
 
- isMsFirm = datConf and datConf['crypterName'] == 'msfirm'
+ isMsFirm = datConf and datConf['crypterName'] == 'CXD4108'
 
  if not fsFile and bodyFile:
   print('Packing updater file system')

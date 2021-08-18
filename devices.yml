@@ -1,400 +1,406 @@
 DSC-HX5V:
-  gen: 0
+  arch: CXD4115
   model: 0x10210105
 DSC-HX9V:
-  gen: 2
+  arch: CXD4132
   model: 0x11020062
 DSC-HX20:
-  gen: 2
+  arch: CXD4132
   model: 0x21020050
 DSC-HX50:
-  gen: 2
+  arch: CXD4132
   model: 0x31020051
 DSC-HX60:
-  gen: 3
+  arch: CXD90014
   model: 0x41020015
   apps: '2.4'
 DSC-HX90:
-  gen: 3
+  arch: CXD90014
   model: 0x51020037
   apps: '2.13'
 DSC-HX200V:
-  gen: 2
+  arch: CXD4132
   model: 0x21020060
 DSC-HX300:
-  gen: 2
+  arch: CXD4132
   model: 0x31020050
 DSC-HX350:
-  gen: 3
+  arch: CXD90014
   model: 0x41020023
 DSC-HX400:
-  gen: 3
+  arch: CXD90014
   model: 0x41020040
   apps: '2.4'
 DSC-QX10:
-  gen: 2
+  arch: CXD4132
   model: 0x32020080
 DSC-QX100:
-  gen: 2
+  arch: CXD4132
   model: 0x32020070
 DSC-RX0:
-  gen: 3
+  arch: CXD90014
   model: 0x61020010
 DSC-RX1:
-  gen: 2
+  arch: CXD4132
   model: 0x22020020
 DSC-RX1R:
-  gen: 2
+  arch: CXD4132
   model: 0x22020024
 DSC-RX1RM2:
-  gen: 3
+  arch: CXD90014
   model: 0x51020035
   apps: '2.14'
 DSC-RX10:
-  gen: 3
+  arch: CXD90014
   model: 0x41020029
 DSC-RX10M2:
-  gen: 3
+  arch: CXD90014
   model: 0x51020038
   apps: '2.14'
 DSC-RX10M3:
-  gen: 3
+  arch: CXD90014
   model: 0x61020032
   apps: '2.15'
 DSC-RX100:
-  gen: 2
+  arch: CXD4132
   model: 0x22020010
 DSC-RX100M2:
-  gen: 2
+  arch: CXD4132
   model: 0x32020010
 DSC-RX100M3:
-  gen: 3
+  arch: CXD90014
   model: 0x41020022
   apps: '2.6'
 DSC-RX100M4:
-  gen: 3
+  arch: CXD90014
   model: 0x51020034
   apps: '2.14'
 DSC-RX100M5:
-  gen: 3
+  arch: CXD90014
   model: 0x61020023
   apps: '2.16'
 DSC-TX5:
-  gen: 0
+  arch: CXD4115
   model: 0x10210107
 DSC-TX7:
-  gen: 0
+  arch: CXD4115
   model: 0x10210102
 DSC-WX5:
-  gen: 0
+  arch: CXD4115
   model: 0x10210124
 DSC-WX80:
-  gen: 2
+  arch: CXD4132
   model: 0x31020021
 DSC-WX100:
-  gen: 2
+  arch: CXD4132
   model: 0x21020010
 DSC-WX200:
-  gen: 2
+  arch: CXD4132
   model: 0x31020030
 DSC-WX220:
-  gen: 3
+  arch: CXD90014
   model: 0x41020021
 DSC-WX300:
-  gen: 2
+  arch: CXD4132
   model: 0x31020010
 DSC-WX350:
-  gen: 3
+  arch: CXD90014
   model: 0x41020013
 DSC-WX500:
-  gen: 3
+  arch: CXD90014
   model: 0x51020030
   apps: '2.13'
 FDR-AX30:
-  gen: 3
+  arch: CXD90014
   model: 0x51010031
   region: 1
   apps: '2.11'
 FDR-AX33:
-  gen: 3
+  arch: CXD90014
   model: 0x51010031
   apps: '2.11'
 FDR-AX40:
-  gen: 3
+  arch: CXD90014
   model: 0x61010031
   region: 1
   apps: '2.15'
 FDR-AX43:
-  gen: 3
+  arch: CXD90014
   model: 0x71010096
 FDR-AX45:
-  gen: 3
+  arch: CXD90014
   model: 0x71010096
   region: 1
 FDR-AX53:
-  gen: 3
+  arch: CXD90014
   model: 0x61010031
   apps: '2.15'
 FDR-AX55:
-  gen: 3
+  arch: CXD90014
   model: 0x61010031
   region: 1
   apps: '2.15'
 FDR-AX60:
-  gen: 3
+  arch: CXD90014
   model: 0x71010096
   region: 1
 FDR-AX100:
-  gen: 3
+  arch: CXD90014
   model: 0x41040033
 FDR-AXP33:
-  gen: 3
+  arch: CXD90014
   model: 0x51010031
   apps: '2.11'
 FDR-AXP35:
-  gen: 3
+  arch: CXD90014
   model: 0x51010031
   region: 1
   apps: '2.11'
 FDR-AXP55:
-  gen: 3
+  arch: CXD90014
   model: 0x61010031
   region: 1
   apps: '2.15'
 FDR-X1000V:
-  gen: 3
+  arch: CXD90014
   model: 0x51010038
   apps: '2.12'
 FDR-X3000:
-  gen: 3
+  arch: CXD90014
   model: 0x61010034
   apps: '2.15'
 HDR-AS10:
-  gen: 2
+  arch: CXD4132
   model: 0x22010005
 HDR-AS15:
-  gen: 2
+  arch: CXD4132
   model: 0x22010005
 HDR-AS30V:
-  gen: 2
+  arch: CXD4132
   model: 0x22010050
 HDR-AS50:
-  gen: 3
+  arch: CXD90014
   model: 0x61010036
   apps: '2.15'
 HDR-AS100V:
-  gen: 3
+  arch: CXD90014
   model: 0x41010011
   apps: '2.5'
 HDR-AS200V:
-  gen: 3
+  arch: CXD90014
   model: 0x51010039
   apps: '2.12'
 HDR-AS300:
-  gen: 3
+  arch: CXD90014
   model: 0x61010035
   apps: '2.15'
 HDR-AZ1:
-  gen: 3
+  arch: CXD90014
   model: 0x42010031
   apps: '2.9'
 HDR-CX405:
-  gen: 3
+  arch: CXD90014
   model: 0x51010037
   apps: '2.11'
 HDR-CX450:
-  gen: 3
+  arch: CXD90014
   model: 0x61010033
   apps: '2.15'
 HDR-CX560:
-  gen: 2
+  arch: CXD4132
   model: 0x11010005
 HDR-CX625:
-  gen: 3
+  arch: CXD90014
   model: 0x61010032
   apps: '2.15'
 HDR-CX670:
-  gen: 3
+  arch: CXD90014
   model: 0x51010036
   region: 1
   apps: '2.11'
 HDR-CX675:
-  gen: 3
+  arch: CXD90014
   model: 0x61010032
   region: 1
   apps: '2.15'
 HDR-CX680:
-  gen: 3
+  arch: CXD90014
   model: 0x61010032
   region: 1
   apps: '2.15'
 HDR-CX700:
-  gen: 2
+  arch: CXD4132
   model: 0x11010005
 HDR-CX900:
-  gen: 3
+  arch: CXD90014
   model: 0x41040034
 HDR-MV1:
-  gen: 2
+  arch: CXD4132
   model: 0x31010090
 HDR-PJ240:
-  gen: 3
+  arch: CXD90014
   model: 0x41010016
 HDR-PJ410:
-  gen: 3
+  arch: CXD90014
   model: 0x51010037
   apps: '2.11'
 HDR-PJ540:
-  gen: 3
+  arch: CXD90014
   model: 0x41010013
 HDR-PJ590V:
-  gen: 2
+  arch: CXD4132
   model: 0x21010001
 HDR-PJ670:
-  gen: 3
+  arch: CXD90014
   model: 0x51010036
   region: 1
   apps: '2.11'
 HDR-PJ675:
-  gen: 3
+  arch: CXD90014
   model: 0x61010032
   region: 1
   apps: '2.15'
 HDR-PJ760V:
-  gen: 2
+  arch: CXD4132
   model: 0x21010031
 HDR-PJ790V:
-  gen: 2
+  arch: CXD4132
   model: 0x31010060
 HDR-PJ800:
-  gen: 3
+  arch: CXD90014
   model: 0x41010032
 HDR-PJ810:
-  gen: 3
+  arch: CXD90014
   model: 0x41010032
 HDR-TD10:
-  gen: 2
+  arch: CXD4132
   model: 0x11010011
 ILCA-77M2:
-  gen: 3
+  arch: CXD90014
   model: 0x42030011
 ILCA-99M2:
-  gen: 3
+  arch: CXD90014
   model: 0x61030012
 ILCE-7:
-  gen: 3
+  arch: CXD90014
   model: 0x41030013
   apps: '2.3'
 ILCE-7M2:
-  gen: 3
+  arch: CXD90014
   model: 0x51030031
   apps: '2.10'
 ILCE-7R:
-  gen: 3
+  arch: CXD90014
   model: 0x41030034
   apps: '2.3'
 ILCE-7RM2:
-  gen: 3
+  arch: CXD90014
   model: 0x51030034
   apps: '2.14'
 ILCE-7S:
-  gen: 3
+  arch: CXD90014
   model: 0x42030032
   apps: '2.6'
 ILCE-7SM2:
-  gen: 3
+  arch: CXD90014
   model: 0x51030041
   apps: '2.14'
 ILCE-5000:
-  gen: 3
+  arch: CXD90014
   model: 0x41030012
   apps: '2.3'
 ILCE-5100:
-  gen: 3
+  arch: CXD90014
   model: 0x42030036
   apps: '2.7'
 ILCE-6000:
-  gen: 3
+  arch: CXD90014
   model: 0x41030035
   apps: '2.4'
 ILCE-6300:
-  gen: 3
+  arch: CXD90014
   model: 0x61030034
   apps: '2.15'
 ILCE-6500:
-  gen: 3
+  arch: CXD90014
   model: 0x61030035
   apps: '2.17'
 ILCE-QX1:
-  gen: 3
+  arch: CXD90014
   model: 0x42030035
   apps: '2.8'
 NEX-3:
-  gen: 1
+  arch: CXD4115
+  key: ilc
   model: 0x10300206
 NEX-3N:
-  gen: 2
+  arch: CXD4132
   model: 0x31030022
 NEX-5:
-  gen: 1
+  arch: CXD4115
+  key: ilc
   model: 0x10300205
 NEX-5N:
-  gen: 2
+  arch: CXD4132
   model: 0x12030023
 NEX-5R:
-  gen: 2
+  arch: CXD4132
   model: 0x22030014
   apps: '1.1'
 NEX-5T:
-  gen: 2
+  arch: CXD4132
   model: 0x22030020
   apps: '1.1'
 NEX-6:
-  gen: 2
+  arch: CXD4132
   model: 0x22030018
   apps: '1.1'
 NEX-7:
-  gen: 2
+  arch: CXD4132
   model: 0x12030024
 NEX-C3:
-  gen: 1
+  arch: CXD4115
+  key: ilc
   model: 0x11300223
 NEX-F3:
-  gen: 2
+  arch: CXD4132
   model: 0x21030010
 NEX-VG10:
-  gen: 1
+  arch: CXD4115
+  key: ilc
   model: 0x10300211
 RM-LVR1:
-  gen: 3
+  arch: CXD90014
   model: 0x41010019
 RM-LVR2:
-  gen: 3
+  arch: CXD90014
   model: 0x42010013
 RM-LVR3:
-  gen: 3
+  arch: CXD90014
   model: 0x61010017
 SLT-A33:
-  gen: 1
+  arch: CXD4115
+  key: ilc
   model: 0x10300202
 SLT-A37:
-  gen: 2
+  arch: CXD4132
   model: 0x21030008
 SLT-A55:
-  gen: 1
+  arch: CXD4115
+  key: ilc
   model: 0x10300203
 SLT-A57:
-  gen: 2
+  arch: CXD4132
   model: 0x21030006
 SLT-A58:
-  gen: 2
+  arch: CXD4132
   model: 0x31030021
 SLT-A65:
-  gen: 2
+  arch: CXD4132
   model: 0x12030012
 SLT-A77:
-  gen: 2
+  arch: CXD4132
   model: 0x12030011
 SLT-A99:
-  gen: 2
+  arch: CXD4132
   model: 0x22030010

@@ -21,8 +21,8 @@ MsFirmFile = namedtuple('MsFirmFile', 'model, region, version, fs, files')
 
 
 def _calcHash(data):
- hash = SHA.new(strxor(constants.msKey, b'\x36' * 0x40) + data).digest()
- return SHA.new(strxor(constants.msKey, b'\x5c' * 0x40) + hash).digest()
+ hash = SHA.new(strxor(constants.key_cxd4108, b'\x36' * 0x40) + data).digest()
+ return SHA.new(strxor(constants.key_cxd4108, b'\x5c' * 0x40) + hash).digest()
 
 
 def _checkHeaderHash(header):
@@ -31,9 +31,9 @@ def _checkHeaderHash(header):
 
 def _cipher(data):
  xorKey = io.BytesIO()
- digest = constants.msKey[:20]
+ digest = constants.key_cxd4108[:20]
  while xorKey.tell() < len(data):
-  digest = SHA.new(digest + constants.msKey[20:40]).digest()
+  digest = SHA.new(digest + constants.key_cxd4108[20:40]).digest()
   xorKey.write(digest)
  return strxor(data, xorKey.getvalue()[:len(data)])
 
