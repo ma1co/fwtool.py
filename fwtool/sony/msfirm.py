@@ -15,6 +15,7 @@ except ImportError:
 
 from . import constants
 from .. import archive
+from ..io import *
 
 
 MsFirmFile = namedtuple('MsFirmFile', 'model, region, version, fs, files')
@@ -49,6 +50,10 @@ def _decrypt(file, off, size):
   raise Exception('Wrong data hash')
 
  return _cipher(data)
+
+
+def _lazyDecrypt(file, off, size):
+ return ChunkedFile(lambda: (yield _decrypt(file, off, size)))
 
 
 def _encrypt(data, outFile):
@@ -145,8 +150,9 @@ def isMsFirm(file):
 
 
 def readMsFirm(file):
- data = _decrypt(file, 0, 0x5000)
- contentFile = _toUnixFile('/cntent.dat', io.BytesIO(data))
+ contentFile = _toUnixFile('/cntent.dat', _lazyDecrypt(file, 0, 0x5000))
+ data = contentFile.contents.read()
+ contentFile.contents.seek(0)
 
  sections = _parseContents(data.decode('ascii'))
  checksum = int(sections[1]['chksum'], 16)
@@ -162,8 +168,7 @@ def readMsFirm(file):
   name = f['name']
   offset = int(f['offset'], 16)
   size = int(f['size'], 16)
-  data = _decrypt(file, offset + (i + 1) * 0x80, size)
-  files.append(_toUnixFile('/' + name, io.BytesIO(data)))
+  files.append(_toUnixFile('/' + name, _lazyDecrypt(file, offset + (i + 1) * 0x80, size)))
 
  header = _parseContents(files[0].contents.read().decode('ascii'))
  files[0].contents.seek(0)
