@@ -13,7 +13,7 @@ import yaml
 
 from fwtool import archive, lzh, pe, zip
 from fwtool.io import *
-from fwtool.sony import backup, bootloader, dat, fdat, flash, msfirm, wbi
+from fwtool.sony import ash, backup, bootloader, dat, fdat, flash, msfirm, wbi
 
 scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
@@ -151,6 +151,21 @@ def unpackMsFirm(file, outDir):
  }
 
 
+def unpackAsh(file, outDir, mtime):
+ print('Decrypting firmware image')
+ ashContents = ash.readAsh(file)
+
+ writeFileTree([
+  toUnixFile('/firmware.dat', ashContents.firmware, mtime),
+ ], outDir)
+
+ return {
+  'model': ashContents.model,
+  'region': ashContents.region,
+  'version': ashContents.version,
+ }
+
+
 def unpackDump(dumpFile, outDir, mtime):
  print('Extracting partitions')
  writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(dumpFile)), outDir)
@@ -190,6 +205,8 @@ def unpackCommand(file, outDir):
  elif msfirm.isMsFirm(file):
   datConf = {'crypterName': 'CXD4108'}
   fdatConf = unpackMsFirm(file, outDir)
+ elif ash.isAsh(file):
+  fdatConf = unpackAsh(file, outDir, mtime)
  elif flash.isPartitionTable(file):
   unpackDump(file, outDir, mtime)
  elif bootloader.isBootloader(file):
