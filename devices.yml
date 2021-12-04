@@ -88,6 +88,9 @@ DSC-TX7:
 DSC-WX5:
   arch: CXD4115
   model: 0x10210124
+DSC-WX60:
+  arch: CXD4132
+  model: 0x31020020
 DSC-WX80:
   arch: CXD4132
   model: 0x31020021
