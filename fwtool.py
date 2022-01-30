@@ -13,7 +13,7 @@ import yaml
 
 from fwtool import archive, lzh, pe, zip
 from fwtool.io import *
-from fwtool.sony import ash, backup, bootloader, dat, fdat, flash, msfirm, wbi
+from fwtool.sony import ash, backup, bootloader, dat, dslr, fdat, flash, msfirm, wbi
 
 scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
@@ -166,6 +166,22 @@ def unpackAsh(file, outDir, mtime):
  }
 
 
+def unpackDslr(file, outDir, mtime):
+ print('Decrypting firmware image')
+ firmware = dslr.decryptDslrFirmware(file)
+ contents = dslr.readDslrFirmware(firmware)
+
+ firmware.seek(0)
+ writeFileTree([
+  toUnixFile('/firmware.dat', firmware, mtime),
+ ] + [toUnixFile('/unpacked/' + n, f, mtime) for n, f in contents.files], outDir)
+
+ return {
+  'model': contents.model,
+  'version': contents.version,
+ }
+
+
 def unpackDump(dumpFile, outDir, mtime):
  print('Extracting partitions')
  writeFileTree((toUnixFile('/nflasha%d' % i, f, mtime) for i, f in flash.readPartitionTable(dumpFile)), outDir)
@@ -207,6 +223,8 @@ def unpackCommand(file, outDir):
   fdatConf = unpackMsFirm(file, outDir)
  elif ash.isAsh(file):
   fdatConf = unpackAsh(file, outDir, mtime)
+ elif dslr.isDslrFirmware(file):
+  fdatConf = unpackDslr(file, outDir, mtime)
  elif flash.isPartitionTable(file):
   unpackDump(file, outDir, mtime)
  elif bootloader.isBootloader(file):
