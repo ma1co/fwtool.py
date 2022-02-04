@@ -281,6 +281,9 @@ HDR-PJ810:
 HDR-TD10:
   arch: CXD4132
   model: 0x11010011
+HDR-TD20:
+  arch: CXD4132
+  model: 0x21010052
 HDR-XR550:
   arch: CXD4120
   model: 0x10040005
