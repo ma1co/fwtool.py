@@ -1,3 +1,6 @@
+DCR-SX31:
+  arch: MB8AC102
+  model: 0x09040001
 DSC-HX5V:
   arch: CXD4115
   model: 0x10210105
