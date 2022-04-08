@@ -204,6 +204,9 @@ HDR-AZ1:
   arch: CXD90014
   model: 0x42010031
   apps: '2.9'
+HDR-CX106:
+  arch: CXD4105
+  model: 0x09040002
 HDR-CX240:
   arch: CXD90014
   model: 0x41010016
