@@ -3,7 +3,7 @@
 A python tool to unpack Sony camera firmware images, ported from [nex-hack's fwtool](http://www.personal-view.com/faqs/sony-hack/fwtool).
 
 ## Special features ###
-* **3rd gen firmware images are supported**
+* **4rd gen firmware images are supported**
 * Known file system images are extracted
 
 ## Usage ##
