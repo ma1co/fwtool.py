@@ -1,10 +1,26 @@
 # fwtool.py #
 
-A python tool to unpack Sony camera firmware images, ported from [nex-hack's fwtool](http://www.personal-view.com/faqs/sony-hack/fwtool).
+A tool to unpack Sony camera firmware images, originally ported from [nex-hack's fwtool](http://www.personal-view.com/faqs/sony-hack/fwtool).
 
-## Special features ###
-* **3rd gen firmware images are supported**
-* Known file system images are extracted
+## Camera Compatibility ###
+The following firmware types can be extracted:
+
+* **"FDAT" firmware updates**
+  * **CXD90045**: ILCE-7M3, ILCE-6600, …
+  * **CXD90014**: ILCE-7, ILCE-6000, ...
+  * **CXD4132**: DSC-RX100, NEX-6, …
+  * **CXD4120**
+  * **CXD4115**: DSC-HX5V, NEX-3, SLT-A33, ...
+  * **CXD4105 / MB8AC102**
+
+* **"Msfirm" firmware updates**
+  * **CXD4108**: DSC-T100, DSC-G3
+
+* **DSLR firmware updates**
+  * DSLR-A230, DSLR-A700, ...
+
+* **"ASH" firmware updates**
+  * DSC-V1, DSC-F828, DSC-H2, ...
 
 ## Usage ##
 Download the [latest release](https://github.com/ma1co/fwtool.py/releases/latest) (Windows or OS X) or clone this repository. Run `fwtool --help` for more information.
