@@ -1,6 +1,9 @@
 DCR-SX31:
   arch: MB8AC102
   model: 0x09040001
+DSC-G3:
+  arch: CXD4108
+  model: 0x08210030
 DSC-HX5V:
   arch: CXD4115
   model: 0x10210105
@@ -82,12 +85,18 @@ DSC-RX100M5:
   arch: CXD90014
   model: 0x61020023
   apps: '2.16'
+DSC-T100:
+  arch: CXD4108
+  model: 0x07210001
 DSC-TX5:
   arch: CXD4115
   model: 0x10210107
 DSC-TX7:
   arch: CXD4115
   model: 0x10210102
+DSC-W90:
+  arch: CXD4108
+  model: 0x07210004
 DSC-WX5:
   arch: CXD4115
   model: 0x10210124
