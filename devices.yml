@@ -24,6 +24,9 @@ DSC-HX90:
   arch: CXD90014
   model: 0x51020037
   apps: '2.13'
+DSC-HX99:
+  arch: CXD90045
+  model: 0x81020011
 DSC-HX200V:
   arch: CXD4132
   model: 0x21020060
@@ -46,6 +49,9 @@ DSC-QX100:
 DSC-RX0:
   arch: CXD90014
   model: 0x61020010
+DSC-RX0M2:
+  arch: CXD90045
+  model: 0x81020015
 DSC-RX1:
   arch: CXD4132
   model: 0x22020020
@@ -67,6 +73,9 @@ DSC-RX10M3:
   arch: CXD90014
   model: 0x61020032
   apps: '2.15'
+DSC-RX10M4:
+  arch: CXD90045
+  model: 0x71020011
 DSC-RX100:
   arch: CXD4132
   model: 0x22020010
@@ -85,6 +94,9 @@ DSC-RX100M5:
   arch: CXD90014
   model: 0x61020023
   apps: '2.16'
+DSC-RX100M5A:
+  arch: CXD90045
+  model: 0x81020016
 DSC-T100:
   arch: CXD4108
   model: 0x07210001
@@ -125,6 +137,9 @@ DSC-WX500:
   arch: CXD90014
   model: 0x51020030
   apps: '2.13'
+DSC-ZV1:
+  arch: CXD90045
+  model: 0x91020014
 FDR-AX30:
   arch: CXD90014
   model: 0x51010031
@@ -162,6 +177,9 @@ FDR-AX60:
 FDR-AX100:
   arch: CXD90014
   model: 0x41040033
+FDR-AX700:
+  arch: CXD90045
+  model: 0x71010053
 FDR-AXP33:
   arch: CXD90014
   model: 0x51010031
@@ -312,10 +330,16 @@ ILCE-7:
   arch: CXD90014
   model: 0x41030013
   apps: '2.3'
+ILCE-7C:
+  arch: CXD90045
+  model: 0x91030019
 ILCE-7M2:
   arch: CXD90014
   model: 0x51030031
   apps: '2.10'
+ILCE-7M3:
+  arch: CXD90045
+  model: 0x71030014
 ILCE-7R:
   arch: CXD90014
   model: 0x41030034
@@ -324,6 +348,15 @@ ILCE-7RM2:
   arch: CXD90014
   model: 0x51030034
   apps: '2.14'
+ILCE-7RM3:
+  arch: CXD90045
+  model: 0x71030013
+ILCE-7RM4:
+  arch: CXD90045
+  model: 0x91030010
+ILCE-7RM4A:
+  arch: CXD90045
+  model: 0x91030003
 ILCE-7S:
   arch: CXD90014
   model: 0x42030032
@@ -332,6 +365,12 @@ ILCE-7SM2:
   arch: CXD90014
   model: 0x51030041
   apps: '2.14'
+ILCE-9:
+  arch: CXD90045
+  model: 0x71030011
+ILCE-9M2:
+  arch: CXD90045
+  model: 0x91030014
 ILCE-5000:
   arch: CXD90014
   model: 0x41030012
@@ -348,10 +387,16 @@ ILCE-6300:
   arch: CXD90014
   model: 0x61030034
   apps: '2.15'
+ILCE-6400:
+  arch: CXD90045
+  model: 0x81030011
 ILCE-6500:
   arch: CXD90014
   model: 0x61030035
   apps: '2.17'
+ILCE-6600:
+  arch: CXD90045
+  model: 0x81030014
 ILCE-QX1:
   arch: CXD90014
   model: 0x42030035
@@ -431,3 +476,6 @@ SLT-A77:
 SLT-A99:
   arch: CXD4132
   model: 0x22030010
+ZV-E10:
+  arch: CXD90045
+  model: 0x01030010
