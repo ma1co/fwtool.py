@@ -27,6 +27,9 @@ DSC-HX90:
 DSC-HX99:
   arch: CXD90045
   model: 0x81020011
+DSC-HX100V:
+  arch: CXD4132
+  model: 0x11020072
 DSC-HX200V:
   arch: CXD4132
   model: 0x21020060
