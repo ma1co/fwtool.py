@@ -1,6 +1,10 @@
 DCR-SX31:
   arch: MB8AC102
   model: 0x09040001
+DSC-G1:
+  arch: CXD4105
+  key: ms
+  model: 0x07210009
 DSC-G3:
   arch: CXD4108
   key: ms
@@ -317,12 +321,20 @@ HDR-PJ800:
 HDR-PJ810:
   arch: CXD90014
   model: 0x41010032
+HDR-SR1:
+  arch: CXD4105
+  key: ms
+  model: 0x06030001
 HDR-TD10:
   arch: CXD4132
   model: 0x11010011
 HDR-TD20:
   arch: CXD4132
   model: 0x21010052
+HDR-UX1:
+  arch: CXD4105
+  key: ms
+  model: 0x06020001
 HDR-XR550:
   arch: CXD4120
   model: 0x10040005

@@ -144,6 +144,7 @@ def _toUnixFile(path, file):
 
 
 _keys = OrderedDict([
+ ('CXD4105_ms', constants.key_cxd4105_ms),
  ('CXD4108_ms', constants.key_cxd4108_ms),
 ])
 
