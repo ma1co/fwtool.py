@@ -140,11 +140,13 @@ def unpackFdat(fdatFile, outDir, mtime):
 
 def unpackMsFirm(file, outDir):
  print('Decrypting firmware image')
- msFirmContents = msfirm.readMsFirm(file)
+ crypterName, msFirmContents = msfirm.readMsFirm(file)
 
  writeFileTree(msFirmContents.files, outDir)
 
  return {
+  'crypterName': crypterName,
+ }, {
   'model': msFirmContents.model,
   'region': msFirmContents.region,
   'version': msFirmContents.version,
@@ -219,8 +221,7 @@ def unpackCommand(file, outDir):
  elif fdat.isFdat(file):
   fdatConf = unpackFdat(file, outDir, mtime)
  elif msfirm.isMsFirm(file):
-  datConf = {'crypterName': 'CXD4108'}
-  fdatConf = unpackMsFirm(file, outDir)
+  datConf, fdatConf = unpackMsFirm(file, outDir)
  elif ash.isAsh(file):
   fdatConf = unpackAsh(file, outDir, mtime)
  elif dslr.isDslrFirmware(file):
@@ -264,7 +265,7 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defa
    'isAccessory': False,
   }
 
- isMsFirm = datConf and datConf['crypterName'] == 'CXD4108'
+ isMsFirm = datConf and datConf['crypterName'].endswith('_ms')
 
  if not fsFile and bodyFile:
   print('Packing updater file system')
@@ -297,7 +298,7 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defa
       ), datFile)
 
    else:
-    msfirm.writeMsFirm(msfirm.MsFirmFile(
+    msfirm.writeMsFirm(datConf['crypterName'], msfirm.MsFirmFile(
      model = fdatConf['model'],
      region = fdatConf['region'],
      version = fdatConf['version'],

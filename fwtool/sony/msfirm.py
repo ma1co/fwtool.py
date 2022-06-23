@@ -1,6 +1,6 @@
 """Decrypter & parser for very old firmware files which had to be copied to a memory stick"""
 
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
 from stat import *
 import io
 import os
@@ -21,46 +21,46 @@ from ..io import *
 MsFirmFile = namedtuple('MsFirmFile', 'model, region, version, fs, files')
 
 
-def _calcHash(data):
- hash = SHA.new(strxor(constants.key_cxd4108, b'\x36' * 0x40) + data).digest()
- return SHA.new(strxor(constants.key_cxd4108, b'\x5c' * 0x40) + hash).digest()
+class MsCrypter(object):
+ def __init__(self, name, key):
+  self.name = name
+  self.key = key
 
+ def _calcHash(self, data):
+  hash = SHA.new(strxor(self.key, b'\x36' * 0x40) + data).digest()
+  return SHA.new(strxor(self.key, b'\x5c' * 0x40) + hash).digest()
 
-def _checkHeaderHash(header):
- return _calcHash(header[:-20] + b'\0' * 20) == header[-20:]
+ def checkHeaderHash(self, header):
+  return self._calcHash(header[:-20] + b'\0' * 20) == header[-20:]
 
+ def _cipher(self, data):
+  xorKey = io.BytesIO()
+  digest = self.key[:20]
+  while xorKey.tell() < len(data):
+   digest = SHA.new(digest + self.key[20:40]).digest()
+   xorKey.write(digest)
+  return strxor(data, xorKey.getvalue()[:len(data)])
 
-def _cipher(data):
- xorKey = io.BytesIO()
- digest = constants.key_cxd4108[:20]
- while xorKey.tell() < len(data):
-  digest = SHA.new(digest + constants.key_cxd4108[20:40]).digest()
-  xorKey.write(digest)
- return strxor(data, xorKey.getvalue()[:len(data)])
+ def _decrypt(self, file, off, size):
+  file.seek(off)
+  header = file.read(0x80)
+  data = file.read(size)
 
+  if not self.checkHeaderHash(header):
+   raise Exception('Wrong header hash')
+  if self._calcHash(data) != header[:20]:
+   raise Exception('Wrong data hash')
 
-def _decrypt(file, off, size):
- file.seek(off)
- header = file.read(0x80)
- data = file.read(size)
+  return self._cipher(data)
 
- if not _checkHeaderHash(header):
-  raise Exception('Wrong header hash')
- if _calcHash(data) != header[:20]:
-  raise Exception('Wrong data hash')
+ def decrypt(self, file, off, size):
+  return ChunkedFile(lambda: (yield self._decrypt(file, off, size)))
 
- return _cipher(data)
-
-
-def _lazyDecrypt(file, off, size):
- return ChunkedFile(lambda: (yield _decrypt(file, off, size)))
-
-
-def _encrypt(data, outFile):
- data = _cipher(data)
- header = _calcHash(data).ljust(0x80, b'\0')
- header = header[:-20] + _calcHash(header)
- outFile.write(header + data)
+ def encrypt(self, data, outFile):
+  data = self._cipher(data)
+  header = self._calcHash(data).ljust(0x80, b'\0')
+  header = header[:-20] + self._calcHash(header)
+  outFile.write(header + data)
 
 
 def _parseContents(data):
@@ -143,14 +143,31 @@ def _toUnixFile(path, file):
  )
 
 
+_keys = OrderedDict([
+ ('CXD4108_ms', constants.key_cxd4108_ms),
+])
+
+def _findDecrypter(file):
+ file.seek(0)
+ header = file.read(0x80)
+ for name, key in _keys.items():
+  crypter = MsCrypter(name, key)
+  if crypter.checkHeaderHash(header):
+   return crypter
+
+
 def isMsFirm(file):
  file.seek(0)
  header = file.read(0x80)
- return len(header) == 0x80 and header[20:-20] == b'\0' * 88 and _checkHeaderHash(header)
+ return len(header) == 0x80 and header[20:-20] == b'\0' * 88 and _findDecrypter(file)
 
 
 def readMsFirm(file):
- contentFile = _toUnixFile('/cntent.dat', _lazyDecrypt(file, 0, 0x5000))
+ crypter = _findDecrypter(file)
+ if crypter is None:
+  raise Exception('Cannot decrypt')
+
+ contentFile = _toUnixFile('/cntent.dat', crypter.decrypt(file, 0, 0x5000))
  data = contentFile.contents.read()
  contentFile.contents.seek(0)
 
@@ -168,12 +185,12 @@ def readMsFirm(file):
   name = f['name']
   offset = int(f['offset'], 16)
   size = int(f['size'], 16)
-  files.append(_toUnixFile('/' + name, _lazyDecrypt(file, offset + (i + 1) * 0x80, size)))
+  files.append(_toUnixFile('/' + name, crypter.decrypt(file, offset + (i + 1) * 0x80, size)))
 
  header = _parseContents(files[0].contents.read().decode('ascii'))
  files[0].contents.seek(0)
  version = int(header[0]['ver'], 16)
- return MsFirmFile(
+ return crypter.name, MsFirmFile(
   version = '%x.%02x' % (version >> 8, version & 0xff),
   model = int(header[1]['model'], 16),
   region = int(header[2]['region'], 16),
@@ -182,7 +199,9 @@ def readMsFirm(file):
  )
 
 
-def writeMsFirm(msfirm, outFile):
+def writeMsFirm(keyName, msfirm, outFile):
+ crypter = MsCrypter(keyName, _keys[keyName])
+
  version = re.match('^(\d)\.(\d{2})$', msfirm.version)
  if not version:
   raise Exception('Cannot parse version string')
@@ -195,7 +214,7 @@ def writeMsFirm(msfirm, outFile):
  ]
  files += msfirm.files if msfirm.files else [_toUnixFile('/av_udtr.bin', io.BytesIO())]
 
- _encrypt(_dumpContents(files, 0x5000), outFile)
+ crypter.encrypt(_dumpContents(files, 0x5000), outFile)
  for file in files:
-  _encrypt(file.contents.read(), outFile)
+  crypter.encrypt(file.contents.read(), outFile)
  outFile.write(b'\0' * (0x8000 - outFile.tell()))
