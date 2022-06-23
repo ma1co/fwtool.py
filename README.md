@@ -15,6 +15,7 @@ The following firmware types can be extracted:
 
 * **"Msfirm" firmware updates**
   * **CXD4108**: DSC-T100, DSC-G3
+  * **CXD4105**: HDR-SR1, HDR-UX1, DSC-G1
 
 * **DSLR firmware updates**
   * DSLR-A230, DSLR-A700, ...
