@@ -18,6 +18,9 @@ DSC-HX9V:
 DSC-HX20:
   arch: CXD4132
   model: 0x21020050
+DSC-HX30:
+  arch: CXD4132
+  model: 0x21020050
 DSC-HX50:
   arch: CXD4132
   model: 0x31020051
