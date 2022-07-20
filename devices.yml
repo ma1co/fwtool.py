@@ -147,9 +147,6 @@ DSC-WX500:
   arch: CXD90014
   model: 0x51020030
   apps: '2.13'
-DSC-ZV1:
-  arch: CXD90045
-  model: 0x91020014
 FDR-AX30:
   arch: CXD90014
   model: 0x51010031
@@ -494,6 +491,9 @@ SLT-A77:
 SLT-A99:
   arch: CXD4132
   model: 0x22030010
+ZV-1:
+  arch: CXD90045
+  model: 0x91020014
 ZV-E10:
   arch: CXD90045
   model: 0x01030010
