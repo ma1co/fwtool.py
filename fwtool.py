@@ -13,7 +13,7 @@ import yaml
 
 from fwtool import archive, lzh, pe, zip
 from fwtool.io import *
-from fwtool.sony import ash, backup, bootloader, dat, dslr, fdat, flash, msfirm, wbi
+from fwtool.sony import ash, bootloader, dat, dslr, fdat, flash, msfirm, wbi
 
 scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
@@ -307,25 +307,6 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defa
     ), fdatFile)
 
 
-def printHexDump(data, n=16, indent=0):
- for i in range(0, len(data), n):
-  line = bytearray(data[i:i+n])
-  hex = ' '.join('%02x' % c for c in line)
-  text = ''.join(chr(c) if 0x21 <= c <= 0x7e else '.' for c in line)
-  print('%*s%-*s %s' % (indent, '', n*3, hex, text))
-
-
-def printBackupCommand(file):
- """Prints all properties in a Backup.bin file"""
- for property in backup.readBackup(file):
-  print('id=0x%08x, size=0x%04x, attr=0x%02x:' % (property.id, len(property.data), property.attr))
-  printHexDump(property.data, indent=2)
-  if property.resetData and property.resetData != property.data:
-   print('reset data:')
-   printHexDump(property.resetData, indent=2)
-  print('')
-
-
 def listDevicesCommand():
  for device in getDevices():
   print(device)
@@ -347,8 +328,6 @@ def main():
  packBody.add_argument('-b', dest='updaterBodyFile', type=argparse.FileType('rb'), help='updater body file (libupdaterbody.so)')
  pack.add_argument('-f', dest='firmwareFile', type=argparse.FileType('rb'), help='firmware file (firmware.tar)')
  pack.add_argument('-o', dest='outDir', required=True, help='output directory')
- printBackup = subparsers.add_parser('print_backup', description='Print the contents of a Backup.bin file')
- printBackup.add_argument('-f', dest='backupFile', type=argparse.FileType('rb'), required=True, help='backup file')
  subparsers.add_parser('list_devices', description='List all known devices')
 
  args = parser.parse_args()
@@ -356,8 +335,6 @@ def main():
   unpackCommand(args.inFile, args.outDir)
  elif args.command == 'pack':
   packCommand(args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile, args.device, args.outDir)
- elif args.command == 'print_backup':
-  printBackupCommand(args.backupFile)
  elif args.command == 'list_devices':
   listDevicesCommand()
  else:
