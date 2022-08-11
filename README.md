@@ -33,8 +33,3 @@ The following files are accepted as input (*-f* flag):
 * A Windows firmware updater executable (.exe file)
 * The *FirmwareData.dat* file extracted from an updater
 * A firmware dump created by running `dd if=/dev/nflasha of=dump.dat` on the camera
-
-### Decode Backup.bin ###
-    fwtool print_backup -f Backup.bin
-
-This will list all properties defined in Backup.bin, the settings file used on Sony cameras. In firmware updates, you can find different variants this file in the *0110_backup* directory.
