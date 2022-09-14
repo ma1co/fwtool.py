@@ -18,7 +18,9 @@ Ext2Header = Struct('Ext2Header', [
  ('inodesPerGroup', Struct.INT32),
  ('...', 12),
  ('magic', Struct.STR % 2),
- ('...', 966),
+ ('...', 30),
+ ('inodeSize', Struct.INT16),
+ ('...', 934),
 ])
 ext2HeaderMagic = b'\x53\xef'
 
@@ -66,7 +68,7 @@ def readExt2(file):
  inodeTables = [Ext2Bgd.unpack(file, bdgOffset + i * Ext2Bgd.size).inodeTableBlock for i in range(numBlockGroups)]
 
  def readInode(i, path = ''):
-  inode = Ext2Inode.unpack(file, inodeTables[(i-1) // header.inodesPerGroup] * blockSize + ((i-1) % header.inodesPerGroup) * Ext2Inode.size)
+  inode = Ext2Inode.unpack(file, inodeTables[(i-1) // header.inodesPerGroup] * blockSize + ((i-1) % header.inodesPerGroup) * header.inodeSize)
 
   def generateChunks(contents=inode.blocks, size=inode.size, mode=inode.mode):
    if S_ISLNK(mode) and size <= len(contents):
