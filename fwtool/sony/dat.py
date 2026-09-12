@@ -57,7 +57,7 @@ dendChunkType = b'DEND'
 
 def findDat(paths):
  """Guesses the .dat file from a list of filenames"""
- return [path for path in paths if re.search('/FirmwareData_([^/]+)\.dat$', path)][0]
+ return [path for path in paths if re.search(r'(?:^|/)FirmwareData_([^/]+)\.dat$', path)][0]
 
 def isDat(file):
  """Returns true if the data provided is a dat file"""

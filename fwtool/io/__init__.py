@@ -35,6 +35,26 @@ class FilePart(object):
   return data
 
 
+class InvertedFile(object):
+ """A view of a file with all of its bits flipped. Can be used like a regular file"""
+ invertTable = bytes(byte ^ 0xff for byte in range(256))
+
+ def __init__(self, file):
+  self.file = file
+
+ def seekable(self):
+  return True
+
+ def seek(self, pos, ref=os.SEEK_SET):
+  return self.file.seek(pos, ref)
+
+ def tell(self):
+  return self.file.tell()
+
+ def read(self, size=-1):
+  return self.file.read(size).translate(self.invertTable)
+
+
 class ChunkedFile(object):
  def __init__(self, generateChunks, size=-1):
   self._generateChunks = generateChunks
