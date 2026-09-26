@@ -239,8 +239,59 @@ def unpackCommand(file, outDir):
   writeYaml({'dat': datConf, 'fdat': fdatConf}, yamlFile)
 
 
+def checkFirmwareTar(firmwareFile):
+ """Refuses to pack a firmware image that contains an unreadable LZPT block table
+
+ Every TPZL member of the tar is checked with archive.lzpt.checkLzpt(): the
+ camera's NAND driver refuses to read a compressed block whose offset is not a
+ multiple of 512 bytes, and a camera in that state cannot be recovered over USB.
+ Decoding such an image in software works, so this check is the only thing that
+ catches it before the package is flashed.
+ """
+ bad = []
+ for file in archive.tar.readTar(firmwareFile):
+  if not S_ISREG(file.mode) or file.contents is None:
+   continue
+  file.contents.seek(0)
+  magic = file.contents.read(4)
+  file.contents.seek(0)
+  if magic != archive.lzpt.lzptHeaderMagic:
+   continue
+  try:
+   info = archive.lzpt.checkLzpt(file.contents)
+  except Exception as e:
+   bad.append((file.path, str(e)))
+  else:
+   print('LZPT %s: %d blocks of %d bytes, all offsets/sizes are 512-aligned'
+         % (file.path, info['blocks'], info['blockSize']))
+ if bad:
+  for path, message in bad:
+   print('ERROR: %s: %s' % (path, message))
+  raise Exception('%d LZPT image(s) in this firmware would not boot - refusing to pack'
+                  % len(bad))
+
+
+def checkLzptCommand(lzptFile, refFile=None):
+ try:
+  info = archive.lzpt.checkLzpt(lzptFile, refFile)
+ except Exception as e:
+  print('FAILED: %s' % e)
+  sys.exit(1)
+ print('blocks            : %d (block size %d)' % (info['blocks'], info['blockSize']))
+ print('file size         : %d' % info['size'])
+ print('unaligned offsets : %d' % len(info['unalignedOffsets']))
+ print('unaligned sizes   : %d' % len(info['unalignedSizes']))
+ if refFile:
+  print('block table       : identical to the reference image')
+  print('container size    : identical to the reference image')
+ print('verdict           : OK - the camera can read this image')
+
+
 def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defaultVersion='9.99'):
  mkdirs(outDir)
+
+ if firmwareFile:
+  checkFirmwareTar(firmwareFile)
 
  if configFile:
   config = yaml.safe_load(configFile)
@@ -328,6 +379,9 @@ def main():
  packBody.add_argument('-b', dest='updaterBodyFile', type=argparse.FileType('rb'), help='updater body file (libupdaterbody.so)')
  pack.add_argument('-f', dest='firmwareFile', type=argparse.FileType('rb'), help='firmware file (firmware.tar)')
  pack.add_argument('-o', dest='outDir', required=True, help='output directory')
+ checkLzpt = subparsers.add_parser('check_lzpt', description='Check an LZPT (TPZL) image for the block-alignment invariants the camera requires')
+ checkLzpt.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='input file')
+ checkLzpt.add_argument('-r', dest='refFile', type=argparse.FileType('rb'), help='reference (stock) image to compare the block table against')
  subparsers.add_parser('list_devices', description='List all known devices')
 
  args = parser.parse_args()
@@ -335,6 +389,8 @@ def main():
   unpackCommand(args.inFile, args.outDir)
  elif args.command == 'pack':
   packCommand(args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile, args.device, args.outDir)
+ elif args.command == 'check_lzpt':
+  checkLzptCommand(args.inFile, args.refFile)
  elif args.command == 'list_devices':
   listDevicesCommand()
  else:
