@@ -358,6 +358,9 @@ ILCE-7M2:
 ILCE-7M3:
   arch: CXD90045
   model: 0x71030014
+ILCE-7M4:
+  arch: CXD90057
+  model: 0x01030081
 ILCE-7R:
   arch: CXD90014
   model: 0x41030034
@@ -497,6 +500,9 @@ SLT-A99:
 ZV-1:
   arch: CXD90045
   model: 0x91020014
+ZV-1F:
+  arch: CXD90045
+  model: 0x11020010
 ZV-E10:
   arch: CXD90045
   model: 0x01030010

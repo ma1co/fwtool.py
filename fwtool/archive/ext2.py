@@ -1,5 +1,6 @@
 """A parser for ext2 file system images"""
 
+import os
 from stat import *
 
 from . import *
@@ -53,7 +54,12 @@ Ext2DirEntry = Struct('Ext2DirEntry', [
 
 def isExt2(file):
  header = Ext2Header.unpack(file)
- return header and header.magic == ext2HeaderMagic
+ if not header or header.magic != ext2HeaderMagic:
+  return False
+ if header.blockSize > 6 or not (header.blocksCount and header.blocksPerGroup and header.inodesPerGroup):
+  return False
+ file.seek(0, os.SEEK_END)
+ return file.tell() >= (1024 << header.blockSize) * header.blocksCount
 
 def readExt2(file):
  header = Ext2Header.unpack(file)
