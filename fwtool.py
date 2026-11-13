@@ -13,7 +13,7 @@ import yaml
 
 from fwtool import archive, lzh, pe, zip
 from fwtool.io import *
-from fwtool.sony import ash, bootloader, dat, dslr, fdat, flash, msfirm, wbi
+from fwtool.sony import ash, bootloader, dat, dslr, fdat, flash, msfirm, package, wbi
 
 scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
@@ -98,10 +98,14 @@ def unpackInstaller(exeFile, datFile):
   zippedDatFile = zippedFiles[dat.findDat(zippedFiles.keys())]
  else:
   last = next(reversed(exeSectors.values()))
-  lzhFile = FilePart(exeFile, last.offset + last.size)
-  if not lzh.isLzh(lzhFile):
+  overlay = FilePart(exeFile, last.offset + last.size)
+  if lzh.isLzh(overlay):
+   zippedDatFile = lzh.readLzh(overlay)
+  elif package.isPackage(overlay):
+   packagedFiles = dict((file.path, file) for file in package.readPackage(overlay))
+   zippedDatFile = packagedFiles[dat.findDat(packagedFiles.keys())]
+  else:
    raise Exception('Unknown exe file')
-  zippedDatFile = lzh.readLzh(lzhFile)
  shutil.copyfileobj(zippedDatFile.contents, datFile)
 
  return zippedDatFile.mtime
@@ -207,13 +211,19 @@ def unpackCommand(file, outDir):
  mkdirs(outDir)
  mtime = os.stat(file.name).st_mtime
 
+ if pe.isExe(file):
+  with open(outDir + '/firmware.dat', 'w+b') as datFile:
+   mtime = unpackInstaller(file, datFile)
+   unpackFile(datFile, outDir, mtime)
+ else:
+  unpackFile(file, outDir, mtime)
+
+
+def unpackFile(file, outDir, mtime):
+ """Extracts a firmware file (anything but an installer executable) to the specified directory"""
  datConf = None
  fdatConf = None
 
- if pe.isExe(file):
-  datFile = open(outDir + '/firmware.dat', 'w+b')
-  mtime = unpackInstaller(file, datFile)
-  file = datFile
  if dat.isDat(file):
   with open(outDir + '/firmware.fdat', 'w+b') as fdatFile:
    datConf = unpackDat(file, fdatFile)
@@ -267,12 +277,21 @@ def packCommand(firmwareFile, fsFile, bodyFile, configFile, device, outDir, defa
 
  isMsFirm = datConf and datConf['crypterName'].endswith('_ms')
 
+ packedFsFile = None
  if not fsFile and bodyFile:
   print('Packing updater file system')
-  fsFile = open(outDir + '/updater_packed.img', 'w+b')
+  fsFile = packedFsFile = open(outDir + '/updater_packed.img', 'w+b')
   path = '/bodylib/libupdaterbody.so' if not isMsFirm else '/BodyUdtr.sh'
   archive.cramfs.writeCramfs([toUnixFile(path, bodyFile)], fsFile)
 
+ try:
+  writePackedFirmware(firmwareFile, fsFile, datConf, fdatConf, isMsFirm, outDir)
+ finally:
+  if packedFsFile:
+   packedFsFile.close()
+
+
+def writePackedFirmware(firmwareFile, fsFile, datConf, fdatConf, isMsFirm, outDir):
  if fdatConf:
   print('Creating firmware image')
   with open(outDir + '/firmware_packed.fdat', 'w+b') as fdatFile:
@@ -312,29 +331,47 @@ def listDevicesCommand():
   print(device)
 
 
+def existingFile(path):
+ """argparse type for an input file that must exist"""
+ if not os.path.isfile(path):
+  raise argparse.ArgumentTypeError("can't open '%s': no such file" % path)
+ return path
+
+
+def openFile(path):
+ return open(path, 'rb') if path else None
+
+
 def main():
  """Command line main"""
  parser = argparse.ArgumentParser()
  subparsers = parser.add_subparsers(dest='command', title='commands')
  unpack = subparsers.add_parser('unpack', description='Unpack a firmware file')
- unpack.add_argument('-f', dest='inFile', type=argparse.FileType('rb'), required=True, help='input file')
+ unpack.add_argument('-f', dest='inFile', type=existingFile, required=True, help='input file')
  unpack.add_argument('-o', dest='outDir', required=True, help='output directory')
  pack = subparsers.add_parser('pack', description='Pack a firmware file')
  packConfig = pack.add_mutually_exclusive_group(required=True)
- packConfig.add_argument('-c', dest='configFile', type=argparse.FileType('rb'), help='configuration file (config.yaml)')
+ packConfig.add_argument('-c', dest='configFile', type=existingFile, help='configuration file (config.yaml)')
  packConfig.add_argument('-d', dest='device', help='device name')
  packBody = pack.add_mutually_exclusive_group()
- packBody.add_argument('-u', dest='updaterFile', type=argparse.FileType('rb'), help='updater file (updater.img)')
- packBody.add_argument('-b', dest='updaterBodyFile', type=argparse.FileType('rb'), help='updater body file (libupdaterbody.so)')
- pack.add_argument('-f', dest='firmwareFile', type=argparse.FileType('rb'), help='firmware file (firmware.tar)')
+ packBody.add_argument('-u', dest='updaterFile', type=existingFile, help='updater file (updater.img)')
+ packBody.add_argument('-b', dest='updaterBodyFile', type=existingFile, help='updater body file (libupdaterbody.so)')
+ pack.add_argument('-f', dest='firmwareFile', type=existingFile, help='firmware file (firmware.tar)')
  pack.add_argument('-o', dest='outDir', required=True, help='output directory')
  subparsers.add_parser('list_devices', description='List all known devices')
 
  args = parser.parse_args()
  if args.command == 'unpack':
-  unpackCommand(args.inFile, args.outDir)
+  with open(args.inFile, 'rb') as inFile:
+   unpackCommand(inFile, args.outDir)
  elif args.command == 'pack':
-  packCommand(args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile, args.device, args.outDir)
+  files = [openFile(path) for path in (args.firmwareFile, args.updaterFile, args.updaterBodyFile, args.configFile)]
+  try:
+   packCommand(*(files + [args.device, args.outDir]))
+  finally:
+   for file in files:
+    if file:
+     file.close()
  elif args.command == 'list_devices':
   listDevicesCommand()
  else:

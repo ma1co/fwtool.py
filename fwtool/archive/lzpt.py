@@ -2,7 +2,6 @@
 # Kernel source: arch/arm/include/asm/mach/warmboot.h
 # Kernel source: arch/arm/mach-cxd90014/include/mach/cmpr.h
 
-import io
 from stat import *
 
 from . import *
@@ -43,11 +42,12 @@ def readLzpt(file):
  def generateChunks():
   for entry in tocEntries:
    file.seek(entry.offset)
-   block = io.BytesIO(file.read(entry.size))
+   block = bytearray(file.read(entry.size))
 
    read = 0
+   pos = 0
    while read < 2 ** header.blockSize:
-    contents = lz77.inflateLz77(block)
+    contents, pos = lz77.inflateLz77Buffer(block, pos)
     yield contents
     read += len(contents)
 

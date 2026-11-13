@@ -309,7 +309,7 @@ def writeFdat(fdat, outFile):
  shutil.copyfileobj(fdat.firmware, outFile)
  endOffset = outFile.tell()
 
- version = re.match('^(\d)\.(\d{2})$', fdat.version)
+ version = re.match(r'^(\d)\.(\d{2})$', fdat.version)
  if not version:
   raise Exception('Cannot parse version string')
 

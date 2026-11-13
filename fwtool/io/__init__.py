@@ -21,7 +21,7 @@ class FilePart(object):
    self.pos += pos
   elif ref == os.SEEK_END:
    self.pos = self.size + pos
-  pos = min(max(pos, 0), self.size)
+  self.pos = min(max(self.pos, 0), self.size)
 
  def tell(self):
   return self.pos
