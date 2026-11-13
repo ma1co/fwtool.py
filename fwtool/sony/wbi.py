@@ -1,7 +1,6 @@
 """Parser for warm boot images"""
 
 from collections import namedtuple
-import io
 
 from .. import lz77
 from ..io import *
@@ -68,10 +67,11 @@ def readWbi(file):
 
   def generateChunks(offset=offset, section=section):
    file.seek(wbiHeaderSize + offset)
-   block = io.BytesIO(file.read(section.size))
+   block = bytearray(file.read(section.size))
    read = 0
+   pos = 0
    while read < section.osize:
-    contents = lz77.inflateLz77(block)
+    contents, pos = lz77.inflateLz77Buffer(block, pos)
     yield contents
     read += len(contents)
 
