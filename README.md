@@ -30,6 +30,6 @@ Download the [latest release](https://github.com/ma1co/fwtool.py/releases/latest
     fwtool unpack -f Update_ILCE_V100.exe -o outDir
 
 The following files are accepted as input (*-f* flag):
-* A Windows firmware updater executable (.exe file)
+* A Windows firmware updater executable (.exe file), including the repackaged updaters released by Sony since 2022
 * The *FirmwareData.dat* file extracted from an updater
 * A firmware dump created by running `dd if=/dev/nflasha of=dump.dat` on the camera

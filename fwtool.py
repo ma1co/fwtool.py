@@ -13,7 +13,7 @@ import yaml
 
 from fwtool import archive, lzh, pe, zip
 from fwtool.io import *
-from fwtool.sony import ash, bootloader, dat, dslr, fdat, flash, msfirm, wbi
+from fwtool.sony import ash, bootloader, dat, dslr, fdat, flash, msfirm, package, wbi
 
 scriptRoot = getattr(sys, '_MEIPASS', os.path.dirname(__file__))
 
@@ -98,10 +98,14 @@ def unpackInstaller(exeFile, datFile):
   zippedDatFile = zippedFiles[dat.findDat(zippedFiles.keys())]
  else:
   last = next(reversed(exeSectors.values()))
-  lzhFile = FilePart(exeFile, last.offset + last.size)
-  if not lzh.isLzh(lzhFile):
+  overlay = FilePart(exeFile, last.offset + last.size)
+  if lzh.isLzh(overlay):
+   zippedDatFile = lzh.readLzh(overlay)
+  elif package.isPackage(overlay):
+   packagedFiles = dict((file.path, file) for file in package.readPackage(overlay))
+   zippedDatFile = packagedFiles[dat.findDat(packagedFiles.keys())]
+  else:
    raise Exception('Unknown exe file')
-  zippedDatFile = lzh.readLzh(lzhFile)
  shutil.copyfileobj(zippedDatFile.contents, datFile)
 
  return zippedDatFile.mtime
