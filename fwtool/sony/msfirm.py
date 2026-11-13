@@ -67,7 +67,7 @@ def _parseContents(data):
  sections = []
  section = None
  for l in data.split('\n'):
-  hm = re.match('^\[(.+)\]$', l)
+  hm = re.match(r'^\[(.+)\]$', l)
   pm = re.match('^(.+)=(.+)$', l)
   if hm:
    section = {}
@@ -203,7 +203,7 @@ def readMsFirm(file):
 def writeMsFirm(keyName, msfirm, outFile):
  crypter = MsCrypter(keyName, _keys[keyName])
 
- version = re.match('^(\d)\.(\d{2})$', msfirm.version)
+ version = re.match(r'^(\d)\.(\d{2})$', msfirm.version)
  if not version:
   raise Exception('Cannot parse version string')
  version = (int(version.group(1), 16) << 8) + int(version.group(2), 16)
